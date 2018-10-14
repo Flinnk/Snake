@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <d3d11.h>
+#include <string>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
@@ -119,7 +120,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Viewport.MaxDepth = 1.0f;
 
 	DeviceContext->RSSetViewports(1, &Viewport);
-
+	LARGE_INTEGER Frequency;
+	LARGE_INTEGER LastCounter;
+	QueryPerformanceFrequency(&Frequency);
+	QueryPerformanceCounter(&LastCounter);
+	
 	MSG Message = {};
 	while (bRun)
 	{
@@ -133,7 +138,19 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		DeviceContext->ClearRenderTargetView(RenderTargetView, Color);
 		DeviceContext->ClearDepthStencilView(DepthStencilView,D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1.0f,0);
 
-		SwapChain->Present(1, 0);
+		SwapChain->Present(2, 0);
+
+		LARGE_INTEGER CurrentCounter;
+		QueryPerformanceCounter(&CurrentCounter);
+
+		LONGLONG ElapsedCounter = CurrentCounter.QuadPart - LastCounter.QuadPart;
+		float ElapsedMilliseconds =(float(ElapsedCounter) / float(Frequency.QuadPart))*1000.0f;
+
+		char Buffer[2048];
+		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedMilliseconds).c_str(), std::to_string((int)trunc(1 / (ElapsedMilliseconds / 1000.0f))).c_str());
+		SetWindowText(WindowHandle,Buffer);
+
+		LastCounter = CurrentCounter;
 	}
 
 	if (DepthStencilView)
