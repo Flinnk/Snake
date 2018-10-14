@@ -147,7 +147,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		float ElapsedTime =(float(ElapsedCounter) / float(Frequency.QuadPart));
 
 		char Buffer[2048];
-		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedMilliseconds / 1000.0f))).c_str());
+		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedTime / 1000.0f))).c_str());
 		SetWindowText(WindowHandle,Buffer);
 
 		LastCounter = CurrentCounter;
