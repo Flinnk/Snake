@@ -1,11 +1,85 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <string>
+#include <d3dcompiler.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
 
 static bool bRun = true;
+
+
+static const char ShaderCode[] = "\
+	cbuffer BufferPerBatch  \
+	{	float4x4 Projection;\
+	}\
+\
+	struct VertexInput\
+{\
+	float4 Position : POSITION;\
+	float4 Color : COLOR;\
+};\
+\
+struct PixelInput\
+{\
+	float4 Position : SV_POSITION;\
+	float4 Color : COLOR;\
+};\
+\
+PixelInput VS(VertexInput Input)\
+{\
+	PixelInput Output;\
+	Input.Position.w = 1;\
+	Output.Color = Input.Color;\
+	Output.Position = mul(Input.Position, Projection);\
+	return Output;\
+}\
+\
+float4 PS(PixelInput Input) : SV_TARGET\
+{\
+	return Input.Color;\
+}\
+";
+
+struct ConstantBufferData
+{
+	float Matrix[16];//Temporal data description until math class are created
+};
+
+void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
+{
+	char* compileErrors;
+	unsigned long long bufferSize, i;
+
+	// Get a pointer to the error message text buffer.
+	compileErrors = (char*)(errorMessage->GetBufferPointer());
+
+	// Get the length of the message.
+	bufferSize = errorMessage->GetBufferSize();
+
+	char* Text = new char[bufferSize];
+	char* ArrayPointer = Text;
+	// Write out the error message.
+	for (i = 0; i < bufferSize; i++, ArrayPointer++)
+	{
+		*ArrayPointer = compileErrors[i];
+	}
+
+	OutputDebugString(Text);
+
+	delete Text;
+
+	// Release the error message.
+	errorMessage->Release();
+	errorMessage = 0;
+
+	return;
+}
+
+#define D3D_SAFE_RELEASE(x) \
+if(x)\
+	x->Release();\
+
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -69,12 +143,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	if (FeatureLevel < D3D_FEATURE_LEVEL_11_0)
 	{
-		if (Device)
-			Device->Release();
-		if (DeviceContext)
-			Device->Release();
-		if (SwapChain)
-			SwapChain->Release();
+		D3D_SAFE_RELEASE(SwapChain);
+		D3D_SAFE_RELEASE(Device);
+		D3D_SAFE_RELEASE(DeviceContext);
 		ShowSystemErrorMessage("Failed to create Direct3D 11 Context");
 		return 0;
 	}
@@ -120,11 +191,74 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Viewport.MaxDepth = 1.0f;
 
 	DeviceContext->RSSetViewports(1, &Viewport);
+
+	ID3D11VertexShader* VertexShader = nullptr;
+	ID3D11PixelShader* PixelShader = nullptr;
+
+	ID3D10Blob* VertexShaderBlob = nullptr;
+	ID3D10Blob* PixelShaderBlob = nullptr;
+	ID3D10Blob* ShaderErrorBlob = nullptr;
+	Result = D3DCompile(ShaderCode, sizeof(ShaderCode), NULL, NULL, NULL, "VS", "vs_5_0", D3DCOMPILE_DEBUG, 0, &VertexShaderBlob, &ShaderErrorBlob);
+	if (FAILED(Result))
+	{
+		OutputShaderErrorMessage(ShaderErrorBlob);
+		ShowSystemErrorMessage("Failed to compile shader");
+		return 0;
+	}
+
+	D3DCompile(ShaderCode, sizeof(ShaderCode), NULL, NULL, NULL, "PS", "ps_5_0", D3DCOMPILE_DEBUG, 0, &PixelShaderBlob, &ShaderErrorBlob);
+	if (FAILED(Result))
+	{
+		OutputShaderErrorMessage(ShaderErrorBlob);
+		ShowSystemErrorMessage("Failed to compile shader");
+		return 0;
+	}
+
+	Device->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), 0, &VertexShader);
+	Device->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), 0, &PixelShader);
+
+	D3D11_INPUT_ELEMENT_DESC Elements[2];
+	Elements[0].SemanticName = "POSITION";
+	Elements[0].SemanticIndex = 0;
+	Elements[0].AlignedByteOffset = 0;
+	Elements[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	Elements[0].InputSlot = 0;
+	Elements[0].InstanceDataStepRate = 0;
+	Elements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+
+	Elements[1].SemanticName = "COLOR";
+	Elements[1].SemanticIndex = 0;
+	Elements[1].AlignedByteOffset = 0;
+	Elements[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	Elements[1].InputSlot = 0;
+	Elements[1].InstanceDataStepRate = 0;
+	Elements[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+
+	ID3D11InputLayout* InputLayout = nullptr;
+	Device->CreateInputLayout(Elements, 2, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout);
+
+	D3D_SAFE_RELEASE(VertexShaderBlob);
+	D3D_SAFE_RELEASE(PixelShaderBlob);
+	D3D_SAFE_RELEASE(ShaderErrorBlob);
+
+	ID3D11Buffer* ConstantBuffer = nullptr;
+
+	D3D11_BUFFER_DESC ConstantBufferDesc = {  };
+	ConstantBufferDesc.ByteWidth = sizeof(ConstantBufferData);
+	ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	ConstantBufferDesc.MiscFlags = 0;
+	ConstantBufferDesc.StructureByteStride = 0;
+
+	Device->CreateBuffer(&ConstantBufferDesc, 0, &ConstantBuffer);
+
 	LARGE_INTEGER Frequency;
 	LARGE_INTEGER LastCounter;
 	QueryPerformanceFrequency(&Frequency);
 	QueryPerformanceCounter(&LastCounter);
-	
+	float ElapsedTime = 0;
+
 	MSG Message = {};
 	while (bRun)
 	{
@@ -136,35 +270,33 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		float Color[] = { 0.0,0.0,1.0,1.0, };
 		DeviceContext->ClearRenderTargetView(RenderTargetView, Color);
-		DeviceContext->ClearDepthStencilView(DepthStencilView,D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,1.0f,0);
+		DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		SwapChain->Present(2, 0);
+		SwapChain->Present(1, 0);
 
 		LARGE_INTEGER CurrentCounter;
 		QueryPerformanceCounter(&CurrentCounter);
 
 		LONGLONG ElapsedCounter = CurrentCounter.QuadPart - LastCounter.QuadPart;
-		float ElapsedTime =(float(ElapsedCounter) / float(Frequency.QuadPart));
+		ElapsedTime = (float(ElapsedCounter) / float(Frequency.QuadPart));
 
 		char Buffer[2048];
-		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedTime / 1000.0f))).c_str());
-		SetWindowText(WindowHandle,Buffer);
+		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedTime))).c_str());
+		SetWindowText(WindowHandle, Buffer);
 
 		LastCounter = CurrentCounter;
 	}
 
-	if (DepthStencilView)
-		DepthStencilView->Release();
-	if (DepthStencilTexture)
-		DepthStencilTexture->Release();
-	if (RenderTargetView)
-		RenderTargetView->Release();
-	if (SwapChain)
-		SwapChain->Release();
-	if (Device)
-		Device->Release();
-	if (DeviceContext)
-		DeviceContext->Release();
+	D3D_SAFE_RELEASE(ConstantBuffer);
+	D3D_SAFE_RELEASE(InputLayout);
+	D3D_SAFE_RELEASE(VertexShader);
+	D3D_SAFE_RELEASE(PixelShader);
+	D3D_SAFE_RELEASE(DepthStencilView);
+	D3D_SAFE_RELEASE(DepthStencilTexture);
+	D3D_SAFE_RELEASE(RenderTargetView);
+	D3D_SAFE_RELEASE(SwapChain);
+	D3D_SAFE_RELEASE(Device);
+	D3D_SAFE_RELEASE(DeviceContext);
 
 	return 0;
 }
