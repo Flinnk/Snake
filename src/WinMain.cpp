@@ -32,6 +32,7 @@ PixelInput VS(VertexInput Input)\
 	Input.Position.w = 1;\
 	Output.Color = Input.Color;\
 	Output.Position = mul(Input.Position, Projection);\
+	Output.Position = Input.Position;\
 	return Output;\
 }\
 \
@@ -40,6 +41,11 @@ float4 PS(PixelInput Input) : SV_TARGET\
 	return Input.Color;\
 }\
 ";
+struct VertexData
+{
+	float Position[3];
+	float Color[4];
+};
 
 struct ConstantBufferData
 {
@@ -228,11 +234,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	Elements[1].SemanticName = "COLOR";
 	Elements[1].SemanticIndex = 0;
-	Elements[1].AlignedByteOffset = 0;
+	Elements[1].AlignedByteOffset = sizeof(float)*3;
 	Elements[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	Elements[1].InputSlot = 0;
 	Elements[1].InstanceDataStepRate = 0;
-	Elements[1].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	Elements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
 	ID3D11InputLayout* InputLayout = nullptr;
 	Device->CreateInputLayout(Elements, 2, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout);
@@ -253,6 +259,83 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	Device->CreateBuffer(&ConstantBufferDesc, 0, &ConstantBuffer);
 
+	ID3D11Buffer* VertexBuffer = nullptr;
+	ID3D11Buffer* IndexBuffer = nullptr;
+
+	D3D11_BUFFER_DESC VertexBufferDesc = {  };
+	VertexBufferDesc.ByteWidth = sizeof(VertexData)*4;
+	VertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	VertexBufferDesc.CPUAccessFlags = 0;
+	VertexBufferDesc.MiscFlags = 0;
+	VertexBufferDesc.StructureByteStride = 0;
+
+	float RectangleColor[4];
+	RectangleColor[0] = 1;
+	RectangleColor[1] = 0;
+	RectangleColor[2] = 0;
+	RectangleColor[3] = 1;
+
+
+	VertexData VBD[4];
+	VBD[0].Position[0] = -0.5;
+	VBD[0].Position[1] = 0.5;
+	VBD[0].Position[2]= 0;
+	CopyMemory(VBD[0].Color, RectangleColor, sizeof(RectangleColor));
+
+	VBD[1].Position[0] = 0.5;
+	VBD[1].Position[1] = -0.5;
+	VBD[1].Position[2] = 0;
+	CopyMemory(VBD[1].Color, RectangleColor, sizeof(RectangleColor));
+
+	VBD[2].Position[0] = -0.5;
+	VBD[2].Position[1] = -0.5;
+	VBD[2].Position[2] = 0;
+	CopyMemory(VBD[2].Color, RectangleColor, sizeof(RectangleColor));
+
+	VBD[3].Position[0] = 0.5;
+	VBD[3].Position[1] = 0.5;
+	VBD[3].Position[2] = 0;
+	CopyMemory(VBD[3].Color, RectangleColor, sizeof(RectangleColor));
+
+	D3D11_SUBRESOURCE_DATA VertexBufferData;
+	VertexBufferData.SysMemPitch = 0;
+	VertexBufferData.SysMemSlicePitch = 0;
+	VertexBufferData.pSysMem = VBD;
+
+	Result = Device->CreateBuffer(&VertexBufferDesc, &VertexBufferData, &VertexBuffer);
+	if (FAILED(Result))
+	{
+		ShowSystemErrorMessage("Failed to create VertexBuffer");
+	}
+
+	D3D11_BUFFER_DESC IndexBufferDesc = {  };
+	IndexBufferDesc.ByteWidth = sizeof(unsigned int) * 6;
+	IndexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	IndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	IndexBufferDesc.CPUAccessFlags = 0;
+	IndexBufferDesc.MiscFlags = 0;
+	IndexBufferDesc.StructureByteStride = 0;
+
+	unsigned int IBD[6];
+	IBD[0] = 0;
+	IBD[1] = 1;
+	IBD[2] = 2;
+	IBD[3] = 0;
+	IBD[4] = 3;
+	IBD[5] = 1;
+
+	D3D11_SUBRESOURCE_DATA IndexBufferData;
+	IndexBufferData.SysMemPitch = 0;
+	IndexBufferData.SysMemSlicePitch = 0;
+	IndexBufferData.pSysMem = IBD;
+
+	Result = Device->CreateBuffer(&IndexBufferDesc, &IndexBufferData, &IndexBuffer);
+	if (FAILED(Result))
+	{
+		ShowSystemErrorMessage("Failed to create IndexBuffer");
+	}
+
 	LARGE_INTEGER Frequency;
 	LARGE_INTEGER LastCounter;
 	QueryPerformanceFrequency(&Frequency);
@@ -272,6 +355,24 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		DeviceContext->ClearRenderTargetView(RenderTargetView, Color);
 		DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+		DeviceContext->VSSetShader(VertexShader,0,0);
+		DeviceContext->PSSetShader(PixelShader, 0, 0);
+		DeviceContext->IASetInputLayout(InputLayout);
+
+		UINT Stride = sizeof(VertexData);
+		UINT Offset = 0;
+		DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+		DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+		//DeviceContext->VSSetConstantBuffers(0,1,&ConstantBuffer);
+
+		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+		DeviceContext->DrawIndexed(6, 0, 0);
+
+
+
 		SwapChain->Present(1, 0);
 
 		LARGE_INTEGER CurrentCounter;
@@ -287,6 +388,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		LastCounter = CurrentCounter;
 	}
 
+	D3D_SAFE_RELEASE(VertexBuffer);
+	D3D_SAFE_RELEASE(IndexBuffer);
 	D3D_SAFE_RELEASE(ConstantBuffer);
 	D3D_SAFE_RELEASE(InputLayout);
 	D3D_SAFE_RELEASE(VertexShader);
