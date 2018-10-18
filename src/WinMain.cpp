@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <string>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
@@ -32,7 +33,6 @@ PixelInput VS(VertexInput Input)\
 	Input.Position.w = 1;\
 	Output.Color = Input.Color;\
 	Output.Position = mul(Input.Position, Projection);\
-	Output.Position = Input.Position;\
 	return Output;\
 }\
 \
@@ -41,15 +41,152 @@ float4 PS(PixelInput Input) : SV_TARGET\
 	return Input.Color;\
 }\
 ";
+
+struct Vector3
+{
+	union
+	{
+		struct { float X, Y, Z; };
+		float Components[3];
+	};
+
+	Vector3() :X(0), Y(0), Z(0) {}
+
+	Vector3(float x, float y, float z) :X(x), Y(y), Z(z) {}
+};
+
+struct Vector4
+{
+	union
+	{
+		struct { float X, Y, Z, W; };
+		float Components[4];
+	};
+
+
+	Vector4() :X(0), Y(0), Z(0), W(0) {}
+
+	Vector4(float x, float y, float z, float w) :X(x), Y(y), Z(z), W(w) {}
+
+	Vector4& operator=(const Vector4& Other)
+	{
+		X = Other.X;
+		Y = Other.Y;
+		Z = Other.Z;
+		W = Other.W;
+		return *this;
+	}
+};
+
+struct Matrix4x4
+{
+	union
+	{
+		float Elements[16];
+	};
+
+	Matrix4x4(float Diagonal)
+	{
+		for (int i = 0; i < 4 * 4; ++i) {
+			Elements[i] = 0;
+		}
+
+		Elements[0] = Diagonal;
+		Elements[5] = Diagonal;
+		Elements[10] = Diagonal;
+		Elements[15] = Diagonal;
+	}
+
+	Matrix4x4()
+	{
+		for (int i = 0; i < 4 * 4; ++i) {
+			Elements[i] = 0;
+		}
+	}
+
+	static Matrix4x4 Identity()
+	{
+		return Matrix4x4(1.0f);
+	}
+
+	static Matrix4x4 Translation(float X, float Y, float Z)
+	{
+		Matrix4x4 Result(1.0f);
+
+		Result.Elements[3] = X;
+		Result.Elements[7] = Y;
+		Result.Elements[11] = Z;
+
+		return Result;
+	}
+
+	static Matrix4x4 Scaling(float X, float Y, float Z)
+	{
+		Matrix4x4 Result(1.0f);
+
+		Result.Elements[0] = X;
+		Result.Elements[5] = Y;
+		Result.Elements[10] = Z;
+
+		return Result;
+	}
+
+	static Matrix4x4 Ortographic(float Width,float Height, float NearPlane, float FarPlane)
+	{
+		Matrix4x4 Result(1.0f);
+
+		float fRange = 1.0f / (FarPlane - NearPlane);
+
+		Result.Elements[0] = 2 / Width;
+		Result.Elements[5] = 2 / Height;
+		Result.Elements[10] = fRange;
+
+		Result.Elements[7] = -fRange * NearPlane;
+		return Result;
+	}
+
+	Matrix4x4 Multiply(const Matrix4x4& Left, const Matrix4x4& Right)
+	{
+		Matrix4x4 Result;
+
+		Result.Elements[0] = Right.Elements[0] * Left.Elements[0] + Right.Elements[1] * Left.Elements[4] + Right.Elements[2] * Left.Elements[8] + Right.Elements[3] * Left.Elements[12];
+		Result.Elements[1] = Right.Elements[0] * Left.Elements[1] + Right.Elements[1] * Left.Elements[5] + Right.Elements[2] * Left.Elements[9] + Right.Elements[3] * Left.Elements[13];
+		Result.Elements[2] = Right.Elements[0] * Left.Elements[2] + Right.Elements[1] * Left.Elements[6] + Right.Elements[2] * Left.Elements[10] + Right.Elements[3] * Left.Elements[14];
+		Result.Elements[3] = Right.Elements[0] * Left.Elements[3] + Right.Elements[1] * Left.Elements[7] + Right.Elements[2] * Left.Elements[11] + Right.Elements[3] * Left.Elements[15];
+		Result.Elements[4] = Right.Elements[4] * Left.Elements[0] + Right.Elements[5] * Left.Elements[4] + Right.Elements[6] * Left.Elements[8] + Right.Elements[7] * Left.Elements[12];
+		Result.Elements[5] = Right.Elements[4] * Left.Elements[1] + Right.Elements[5] * Left.Elements[5] + Right.Elements[6] * Left.Elements[9] + Right.Elements[7] * Left.Elements[13];
+		Result.Elements[6] = Right.Elements[4] * Left.Elements[2] + Right.Elements[5] * Left.Elements[6] + Right.Elements[6] * Left.Elements[10] + Right.Elements[7] * Left.Elements[14];
+		Result.Elements[7] = Right.Elements[4] * Left.Elements[3] + Right.Elements[5] * Left.Elements[7] + Right.Elements[6] * Left.Elements[11] + Right.Elements[7] * Left.Elements[15];
+		Result.Elements[8] = Right.Elements[8] * Left.Elements[0] + Right.Elements[9] * Left.Elements[4] + Right.Elements[10] * Left.Elements[8] + Right.Elements[11] * Left.Elements[12];
+		Result.Elements[9] = Right.Elements[8] * Left.Elements[1] + Right.Elements[9] * Left.Elements[5] + Right.Elements[10] * Left.Elements[9] + Right.Elements[11] * Left.Elements[13];
+		Result.Elements[10] = Right.Elements[8] * Left.Elements[2] + Right.Elements[9] * Left.Elements[6] + Right.Elements[10] * Left.Elements[10] + Right.Elements[11] * Left.Elements[14];
+		Result.Elements[11] = Right.Elements[8] * Left.Elements[3] + Right.Elements[9] * Left.Elements[7] + Right.Elements[10] * Left.Elements[11] + Right.Elements[11] * Left.Elements[15];
+		Result.Elements[12] = Right.Elements[12] * Left.Elements[0] + Right.Elements[13] * Left.Elements[4] + Right.Elements[14] * Left.Elements[8] + Right.Elements[15] * Left.Elements[12];
+		Result.Elements[13] = Right.Elements[12] * Left.Elements[1] + Right.Elements[13] * Left.Elements[5] + Right.Elements[14] * Left.Elements[9] + Right.Elements[15] * Left.Elements[13];
+		Result.Elements[14] = Right.Elements[12] * Left.Elements[2] + Right.Elements[13] * Left.Elements[6] + Right.Elements[14] * Left.Elements[10] + Right.Elements[15] * Left.Elements[14];
+		Result.Elements[15] = Right.Elements[12] * Left.Elements[3] + Right.Elements[13] * Left.Elements[7] + Right.Elements[14] * Left.Elements[11] + Right.Elements[15] * Left.Elements[15];
+
+
+		return Result;
+	}
+
+	Matrix4x4& operator*=(const Matrix4x4& Right)
+	{
+		*this = Multiply(*this, Right);
+
+		return *this;
+	}
+};
+
 struct VertexData
 {
-	float Position[3];
-	float Color[4];
+	Vector3 Position;
+	Vector4 Color;
 };
 
 struct ConstantBufferData
 {
-	float Matrix[16];//Temporal data description until math class are created
+	Matrix4x4 MVP;
 };
 
 void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
@@ -234,7 +371,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	Elements[1].SemanticName = "COLOR";
 	Elements[1].SemanticIndex = 0;
-	Elements[1].AlignedByteOffset = sizeof(float)*3;
+	Elements[1].AlignedByteOffset = sizeof(float) * 3;
 	Elements[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	Elements[1].InputSlot = 0;
 	Elements[1].InstanceDataStepRate = 0;
@@ -263,40 +400,27 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ID3D11Buffer* IndexBuffer = nullptr;
 
 	D3D11_BUFFER_DESC VertexBufferDesc = {  };
-	VertexBufferDesc.ByteWidth = sizeof(VertexData)*4;
+	VertexBufferDesc.ByteWidth = sizeof(VertexData) * 4;
 	VertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	VertexBufferDesc.CPUAccessFlags = 0;
 	VertexBufferDesc.MiscFlags = 0;
 	VertexBufferDesc.StructureByteStride = 0;
 
-	float RectangleColor[4];
-	RectangleColor[0] = 1;
-	RectangleColor[1] = 0;
-	RectangleColor[2] = 0;
-	RectangleColor[3] = 1;
-
+	Vector4 RectangleColor = Vector4(1, 0, 0, 1);
 
 	VertexData VBD[4];
-	VBD[0].Position[0] = -0.5;
-	VBD[0].Position[1] = 0.5;
-	VBD[0].Position[2]= 0;
-	CopyMemory(VBD[0].Color, RectangleColor, sizeof(RectangleColor));
+	VBD[0].Position = Vector3(-0.5, 0.5, 0);
+	VBD[0].Color = RectangleColor;
 
-	VBD[1].Position[0] = 0.5;
-	VBD[1].Position[1] = -0.5;
-	VBD[1].Position[2] = 0;
-	CopyMemory(VBD[1].Color, RectangleColor, sizeof(RectangleColor));
+	VBD[1].Position = Vector3(0.5, -0.5, 0);
+	VBD[1].Color = RectangleColor;
 
-	VBD[2].Position[0] = -0.5;
-	VBD[2].Position[1] = -0.5;
-	VBD[2].Position[2] = 0;
-	CopyMemory(VBD[2].Color, RectangleColor, sizeof(RectangleColor));
+	VBD[2].Position = Vector3(-0.5, -0.5, 0);
+	VBD[2].Color = RectangleColor;
 
-	VBD[3].Position[0] = 0.5;
-	VBD[3].Position[1] = 0.5;
-	VBD[3].Position[2] = 0;
-	CopyMemory(VBD[3].Color, RectangleColor, sizeof(RectangleColor));
+	VBD[3].Position = Vector3(0.5, 0.5, 0);
+	VBD[3].Color = RectangleColor;
 
 	D3D11_SUBRESOURCE_DATA VertexBufferData;
 	VertexBufferData.SysMemPitch = 0;
@@ -351,11 +475,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			DispatchMessage(&Message);
 		}
 
-		float Color[] = { 0.0,0.0,1.0,1.0, };
-		DeviceContext->ClearRenderTargetView(RenderTargetView, Color);
+		Vector4 Color = Vector4(0.0, 0.0, 1.0, 1.0);
+		DeviceContext->ClearRenderTargetView(RenderTargetView, Color.Components);
 		DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		DeviceContext->VSSetShader(VertexShader,0,0);
+		DeviceContext->VSSetShader(VertexShader, 0, 0);
 		DeviceContext->PSSetShader(PixelShader, 0, 0);
 		DeviceContext->IASetInputLayout(InputLayout);
 
@@ -364,16 +488,23 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
 		DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-		//DeviceContext->VSSetConstantBuffers(0,1,&ConstantBuffer);
+		D3D11_MAPPED_SUBRESOURCE ConstantBufferSubresource;
+		DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferSubresource);
+		ConstantBufferData* Data = (ConstantBufferData*)ConstantBufferSubresource.pData;
+		Data->MVP = Matrix4x4::Identity();
+		Data->MVP *= Matrix4x4::Ortographic(800, 600, 0, 100);
+		Data->MVP *= Matrix4x4::Translation(0, 0, 0);
+		Data->MVP *= Matrix4x4::Scaling(100,100, 0);
+
+		DeviceContext->Unmap(ConstantBuffer, 0);
+
+		DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
 
 		DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-
 		DeviceContext->DrawIndexed(6, 0, 0);
 
-
-
-		SwapChain->Present(1, 0);
+		SwapChain->Present(0, 0);
 
 		LARGE_INTEGER CurrentCounter;
 		QueryPerformanceCounter(&CurrentCounter);
