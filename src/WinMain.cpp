@@ -2,8 +2,6 @@
 #include <d3d11.h>
 #include <string>
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
-
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
 
@@ -32,7 +30,7 @@ PixelInput VS(VertexInput Input)\
 	PixelInput Output;\
 	Input.Position.w = 1;\
 	Output.Color = Input.Color;\
-	Output.Position = mul(Input.Position, Projection);\
+	Output.Position = mul(Projection,Input.Position);\
 	return Output;\
 }\
 \
@@ -113,9 +111,9 @@ struct Matrix4x4
 	{
 		Matrix4x4 Result(1.0f);
 
-		Result.Elements[3] = X;
-		Result.Elements[7] = Y;
-		Result.Elements[11] = Z;
+		Result.Elements[12] = X;
+		Result.Elements[13] = Y;
+		Result.Elements[14] = Z;
 
 		return Result;
 	}
@@ -131,17 +129,27 @@ struct Matrix4x4
 		return Result;
 	}
 
-	static Matrix4x4 Ortographic(float Width,float Height, float NearPlane, float FarPlane)
+	static Matrix4x4 Ortographic(float ViewLeft,
+		float ViewRight,
+		float ViewBottom,
+		float ViewTop,
+		float NearZ,
+		float FarZ)
 	{
 		Matrix4x4 Result(1.0f);
 
-		float fRange = 1.0f / (FarPlane - NearPlane);
+		float ReciprocalWidth = 1.0f / (ViewRight - ViewLeft);
+		float ReciprocalHeight = 1.0f / (ViewTop - ViewBottom);
+		float fRange = 1.0f / (FarZ - NearZ);
 
-		Result.Elements[0] = 2 / Width;
-		Result.Elements[5] = 2 / Height;
+
+		Result.Elements[0] = ReciprocalWidth + ReciprocalWidth;
+		Result.Elements[5] = ReciprocalHeight + ReciprocalHeight;
 		Result.Elements[10] = fRange;
 
-		Result.Elements[7] = -fRange * NearPlane;
+		Result.Elements[12] = -(ViewLeft + ViewRight) * ReciprocalWidth;
+		Result.Elements[13] = -(ViewTop + ViewBottom) * ReciprocalHeight;
+		Result.Elements[14] = -fRange * NearZ;
 		return Result;
 	}
 
@@ -410,16 +418,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Vector4 RectangleColor = Vector4(1, 0, 0, 1);
 
 	VertexData VBD[4];
-	VBD[0].Position = Vector3(-0.5, 0.5, 0);
+	VBD[0].Position = Vector3(0,1, 0);
 	VBD[0].Color = RectangleColor;
 
-	VBD[1].Position = Vector3(0.5, -0.5, 0);
+	VBD[1].Position = Vector3(1, 0, 0);
 	VBD[1].Color = RectangleColor;
 
-	VBD[2].Position = Vector3(-0.5, -0.5, 0);
+	VBD[2].Position = Vector3(0, 0, 0);
 	VBD[2].Color = RectangleColor;
 
-	VBD[3].Position = Vector3(0.5, 0.5, 0);
+	VBD[3].Position = Vector3(1, 1, 0);
 	VBD[3].Color = RectangleColor;
 
 	D3D11_SUBRESOURCE_DATA VertexBufferData;
@@ -445,9 +453,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	IBD[0] = 0;
 	IBD[1] = 1;
 	IBD[2] = 2;
-	IBD[3] = 0;
-	IBD[4] = 3;
-	IBD[5] = 1;
+	IBD[3] = 3;
+	IBD[4] = 1;
+	IBD[5] = 0;
 
 	D3D11_SUBRESOURCE_DATA IndexBufferData;
 	IndexBufferData.SysMemPitch = 0;
@@ -467,6 +475,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	float ElapsedTime = 0;
 
 	MSG Message = {};
+	Vector3 Direction = Vector3(1, 1, 0);
+	Vector3 Position = Vector3(100, 50, 0);
+	float Speed = 500.0f;
 	while (bRun)
 	{
 		while (PeekMessage(&Message, WindowHandle, 0, 0, PM_REMOVE))
@@ -492,9 +503,21 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferSubresource);
 		ConstantBufferData* Data = (ConstantBufferData*)ConstantBufferSubresource.pData;
 		Data->MVP = Matrix4x4::Identity();
-		Data->MVP *= Matrix4x4::Ortographic(800, 600, 0, 100);
-		Data->MVP *= Matrix4x4::Translation(0, 0, 0);
-		Data->MVP *= Matrix4x4::Scaling(100,100, 0);
+		Data->MVP *= Matrix4x4::Ortographic(0,800, 0,600, 0, 100);//Intercambiar ViewTop/ViewBottom hace que pasemos el cordenadas de con origen arriba izquierda a abajo izquierda
+		Data->MVP *= Matrix4x4::Translation(Position.X, Position.Y, Position.Z);
+		Data->MVP *= Matrix4x4::Scaling(100, 100, 100);
+
+		Vector3 NewPosition = Vector3();
+		NewPosition.X  = Position.X + Direction.X*Speed* ElapsedTime;
+		NewPosition.Y = Position.Y + Direction.Y*Speed* ElapsedTime;
+
+		if (NewPosition.X < 0 || NewPosition.X + 100>800)
+			Direction.X *= -1;
+		if (NewPosition.Y < 0 || NewPosition.Y + 100>600)
+			Direction.Y *= -1;
+		Position.X += Direction.X*Speed* ElapsedTime;
+		Position.Y += Direction.Y*Speed* ElapsedTime; 
+
 
 		DeviceContext->Unmap(ConstantBuffer, 0);
 
