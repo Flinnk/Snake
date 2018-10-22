@@ -221,14 +221,14 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	}
 
 	D3D11_BUFFER_DESC VertexBufferDesc = {  };
-	VertexBufferDesc.ByteWidth = sizeof(VertexData) * 4;
-	VertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	VertexBufferDesc.ByteWidth = sizeof(VertexData) * NUM_VERTICES;
+	VertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	VertexBufferDesc.CPUAccessFlags = 0;
+	VertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	VertexBufferDesc.MiscFlags = 0;
 	VertexBufferDesc.StructureByteStride = 0;
 
-	Vector4 RectangleColor = Vector4(1, 0, 0, 1);
+	/*Vector4 RectangleColor = Vector4(1, 0, 0, 1);
 
 	VertexData VBD[4];
 	VBD[0].Position = Vector3(0, 1, 0);
@@ -241,34 +241,41 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	VBD[2].Color = RectangleColor;
 
 	VBD[3].Position = Vector3(1, 1, 0);
-	VBD[3].Color = RectangleColor;
+	VBD[3].Color = RectangleColor;*/
 
-	D3D11_SUBRESOURCE_DATA VertexBufferData;
-	VertexBufferData.SysMemPitch = 0;
-	VertexBufferData.SysMemSlicePitch = 0;
-	VertexBufferData.pSysMem = VBD;
-
-	Result = Device->CreateBuffer(&VertexBufferDesc, &VertexBufferData, &VertexBuffer);
+	Result = Device->CreateBuffer(&VertexBufferDesc, 0, &VertexBuffer);
 	if (FAILED(Result))
 	{
 		return false;
 	}
 
 	D3D11_BUFFER_DESC IndexBufferDesc = {  };
-	IndexBufferDesc.ByteWidth = sizeof(unsigned int) * 6;
+	IndexBufferDesc.ByteWidth = sizeof(unsigned int) * NUM_INDICES;
 	IndexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	IndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	IndexBufferDesc.CPUAccessFlags = 0;
 	IndexBufferDesc.MiscFlags = 0;
 	IndexBufferDesc.StructureByteStride = 0;
 
-	unsigned int IBD[6];
-	IBD[0] = 0;
+	unsigned int IBD[NUM_INDICES];
+	unsigned int LastIndex = 0;
+	for (int Index = 0; Index < NUM_INDICES; Index += 6)
+	{
+		IBD[Index] = LastIndex;
+		IBD[Index + 1] = LastIndex + 1;
+		IBD[Index + 2] = LastIndex + 2;
+		IBD[Index + 3] = LastIndex + 3;
+		IBD[Index + 4] = LastIndex + 1;
+		IBD[Index + 5] = LastIndex;
+		LastIndex += Index + 4;
+	}
+
+	/*IBD[0] = 0;
 	IBD[1] = 1;
 	IBD[2] = 2;
 	IBD[3] = 3;
 	IBD[4] = 1;
-	IBD[5] = 0;
+	IBD[5] = 0;*/
 
 	D3D11_SUBRESOURCE_DATA IndexBufferData;
 	IndexBufferData.SysMemPitch = 0;
@@ -294,6 +301,14 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	D3D11_MAPPED_SUBRESOURCE ConstantBufferSubresource;
+	DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferSubresource);
+	ConstantBufferData* Data = (ConstantBufferData*)ConstantBufferSubresource.pData;
+	Data->MVP = Matrix4x4::Identity();
+	Data->MVP *= Matrix4x4::Ortographic(0, Width, 0, Height, 0, 100);//Intercambiar ViewTop/ViewBottom hace que pasemos el cordenadas de con origen arriba izquierda a abajo izquierda
+
+	DeviceContext->Unmap(ConstantBuffer, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
 
 	return true;
 }
@@ -306,22 +321,53 @@ void Renderer::Clear(const Vector4& Color)
 
 void Renderer::Present()
 {
-	SwapChain->Present(1, 0);
+	SwapChain->Present(0, 0);
 }
 
-void Renderer::DrawRectangle(Vector3 Position, Vector3 Scale)
+void Renderer::Begin()
 {
-	D3D11_MAPPED_SUBRESOURCE ConstantBufferSubresource;
-	DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferSubresource);
-	ConstantBufferData* Data = (ConstantBufferData*)ConstantBufferSubresource.pData;
-	Data->MVP = Matrix4x4::Identity();
-	Data->MVP *= Matrix4x4::Ortographic(0, Width, 0, Height, 0, 100);//Intercambiar ViewTop/ViewBottom hace que pasemos el cordenadas de con origen arriba izquierda a abajo izquierda
-	Data->MVP *= Matrix4x4::Translation(Position);
-	Data->MVP *= Matrix4x4::Scaling(Scale);
+	IndicesToDraw = 0;
+	D3D11_MAPPED_SUBRESOURCE BufferSubresource;
+	DeviceContext->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &BufferSubresource);
+	VertexBufferPointer = (VertexData*)BufferSubresource.pData;
+}
 
-	DeviceContext->Unmap(ConstantBuffer, 0);
-	DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
-	DeviceContext->DrawIndexed(6, 0, 0);
+void Renderer::End()
+{
+	DeviceContext->Unmap(VertexBuffer, 0);
+	DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
+}
+
+void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color)
+{
+	if (VertexBufferPointer == nullptr)
+		return;
+
+	//Vertex1
+	VertexBufferPointer->Position = Vector3(Position.X, Position.Y+Size.Y, Position.Z);
+	VertexBufferPointer->Color = Color;
+
+	++VertexBufferPointer;
+
+	//Vertex2
+	VertexBufferPointer->Position = Vector3(Position.X+Size.X, Position.Y, Position.Z);
+	VertexBufferPointer->Color = Color;
+
+	++VertexBufferPointer;
+
+	//Vertex3
+	VertexBufferPointer->Position = Vector3(Position.X, Position.Y, Position.Z);
+	VertexBufferPointer->Color = Color;
+
+	++VertexBufferPointer;
+
+	//Vertex4
+	VertexBufferPointer->Position = Vector3(Position.X+Size.X, Position.Y+Size.Y, Position.Z);
+	VertexBufferPointer->Color = Color;
+
+	++VertexBufferPointer;
+
+	IndicesToDraw += 6;
 }
 
 void Renderer::Release()

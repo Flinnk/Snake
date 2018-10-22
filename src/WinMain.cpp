@@ -246,7 +246,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		if (CanMove)
 			Position += Direction * Speed* ElapsedTime;
 
-		Renderer.DrawRectangle(Position, RectangleSize);
+		Renderer.Begin();
+
+		Renderer.DrawRectangle(Position, RectangleSize, Vector4(1.0, 0.0, 0.0, 1.0));
+
+		Renderer.End();
 
 		Renderer.Present();
 

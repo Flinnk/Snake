@@ -3,6 +3,12 @@
 #include <SnakeMath.h>
 #include <d3d11.h>
 
+#define NUM_RECT_BATCH 1000
+#define VERTEX_PER_RECT 4
+#define INDICES_PER_RECT 6
+#define NUM_VERTICES (NUM_RECT_BATCH * VERTEX_PER_RECT)
+#define NUM_INDICES (NUM_RECT_BATCH * INDICES_PER_RECT)
+
 struct VertexData
 {
 	Vector3 Position;
@@ -21,7 +27,11 @@ public:
 	bool Initialize(HWND WindowHandle, int Width, int Height);
 
 	void Clear(const Vector4& Color);
-	void DrawRectangle(Vector3 Position, Vector3 Scale);
+	void Begin();
+
+	void DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color);
+	void End();
+
 	void Present();
 
 	void Release();
@@ -40,4 +50,7 @@ private:
 	ID3D11Buffer* ConstantBuffer = nullptr;
 	ID3D11Buffer* VertexBuffer = nullptr;
 	ID3D11Buffer* IndexBuffer = nullptr;
+
+	VertexData* VertexBufferPointer = nullptr;
+	unsigned int IndicesToDraw = 0;
 };
