@@ -136,7 +136,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		return false;
 	}
 
-	DeviceContext->OMSetRenderTargets(1, &RenderTargetView, DepthStencilView);
+	DeviceContext->OMSetRenderTargets(1, &RenderTargetView, NULL/*DepthStencilView*/);//No necesitamos depth testing
 
 	D3D11_VIEWPORT Viewport;
 	Viewport.TopLeftX = 0;
@@ -267,7 +267,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		IBD[Index + 3] = LastIndex + 3;
 		IBD[Index + 4] = LastIndex + 1;
 		IBD[Index + 5] = LastIndex;
-		LastIndex += Index + 4;
+		LastIndex +=  4;
 	}
 
 	/*IBD[0] = 0;
@@ -368,6 +368,13 @@ void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color)
 	++VertexBufferPointer;
 
 	IndicesToDraw += 6;
+
+	if (IndicesToDraw >= NUM_INDICES)
+	{
+		End();
+		Begin();
+	}
+		
 }
 
 void Renderer::Release()

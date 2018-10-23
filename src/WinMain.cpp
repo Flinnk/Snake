@@ -7,6 +7,9 @@
 #define WINDOW_HEIGHT 600
 #define ENUM_TO_UINT(x) static_cast<unsigned int>(x)
 
+#define TILE_MAP_COLLUMNS 16
+#define TILE_MAP_ROWS 12
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
 
@@ -15,6 +18,14 @@ static bool bRun = true;
 struct WindowsVariables
 {
 	HWND WindowHandle;
+};
+
+enum class TileMapValue
+{
+	FLOOR,
+	WALL,
+	SNAKE,
+	APPLE
 };
 
 enum class InputKeys : UINT
@@ -37,7 +48,7 @@ struct KeyState
 {
 	bool CurrentState;
 	bool PreviousState;
-	
+
 	bool Get()
 	{
 		return CurrentState;
@@ -75,7 +86,7 @@ struct Input
 			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].Get();
 			++DeviceIndex;
 		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
-		
+
 		return DetectedInput;
 	}
 
@@ -210,10 +221,21 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Vector3 Direction = Vector3(0, 0, 0);
 	Vector3 Position = Vector3(100, 50, 0);
 	float Speed = 500.0f;
-	Vector4 ClearColor = Vector4(0.0, 0.0, 1.0, 1.0);
-	Vector3 RectangleSize = Vector3(100, 100, 0);
+	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
+	Vector3 TileSize(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
+	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
+	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
+	{
+		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
+		{
+			if (Row == 0 || Column == 0 || Row == TILE_MAP_ROWS - 1 || Column == TILE_MAP_COLLUMNS - 1)
+				TileMap[Column][Row] = TileMapValue::WALL;
+			else
+				TileMap[Column][Row] = TileMapValue::FLOOR;
+		}
+	}
 	while (bRun)
-	{	
+	{
 		while (PeekMessage(&Message, WinVariables.WindowHandle, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&Message);
@@ -241,14 +263,40 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		NewPosition = Position + Direction * Speed * ElapsedTime;
 
-		bool CanMove = NewPosition.X > 0 && NewPosition.X + RectangleSize.X < WINDOW_WIDTH && NewPosition.Y > 0 && NewPosition.Y + RectangleSize.Y < WINDOW_HEIGHT;
+		bool CanMove = NewPosition.X > 0 && NewPosition.X + TileSize.X < WINDOW_WIDTH && NewPosition.Y > 0 && NewPosition.Y + TileSize.Y < WINDOW_HEIGHT;
 
 		if (CanMove)
 			Position += Direction * Speed* ElapsedTime;
 
 		Renderer.Begin();
 
-		Renderer.DrawRectangle(Position, RectangleSize, Vector4(1.0, 0.0, 0.0, 1.0));
+		for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
+		{
+			for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
+			{
+				TileMapValue TileValue = TileMap[Column][Row];
+				Vector3 TilePosition(Column*TileSize.X, WINDOW_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
+				Vector4 Color;
+				switch (TileValue)
+				{
+				case TileMapValue::FLOOR:
+					Color = Vector4(0.0, 0.0, 0.0, 1.0);
+					break;
+				case TileMapValue::WALL:
+					Color = Vector4(0.23, 0.15, 0.95, 1.0);
+					break;
+				case TileMapValue::SNAKE:
+					Color = Vector4(0, 1, 0, 1.0);
+					break;
+				default:
+					Color = Vector4(1.0, 0.0, 1.0, 1.0);
+				}
+
+				Renderer.DrawRectangle(TilePosition, TileSize, Color);
+			}
+		}
+
+		Renderer.DrawRectangle(Position, TileSize, Vector4(1.0, 0.0, 0.0, 1.0));
 
 		Renderer.End();
 

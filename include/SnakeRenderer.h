@@ -3,7 +3,7 @@
 #include <SnakeMath.h>
 #include <d3d11.h>
 
-#define NUM_RECT_BATCH 1000
+#define NUM_RECT_BATCH 250
 #define VERTEX_PER_RECT 4
 #define INDICES_PER_RECT 6
 #define NUM_VERTICES (NUM_RECT_BATCH * VERTEX_PER_RECT)
