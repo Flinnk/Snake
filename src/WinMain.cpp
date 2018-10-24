@@ -1,11 +1,10 @@
 #include <string>
 #include <SnakeMath.h>
 #include <SnakeRenderer.h>
-#include <Xinput.h>
+#include <SnakeInput.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#define ENUM_TO_UINT(x) static_cast<unsigned int>(x)
 
 #define TILE_MAP_COLLUMNS 16
 #define TILE_MAP_ROWS 12
@@ -28,100 +27,22 @@ enum class TileMapValue
 	APPLE
 };
 
-enum class InputKeys : UINT
+enum class MovementDirection
 {
-	UP = 0,
+	NONE,
+	UP,
 	DOWN,
 	LEFT,
-	RIGHT,
-	TOTAL
+	RIGHT
 };
 
-enum class InputDevices
+struct TileMapCoordinate
 {
-	KEYBOARD = 0,
-	GAMEPAD,
-	TOTAL
+	unsigned int Row;
+	unsigned int Column;
 };
 
-struct KeyState
-{
-	bool CurrentState;
-	bool PreviousState;
 
-	bool Get()
-	{
-		return CurrentState;
-	}
-
-	bool GetUp()
-	{
-		return PreviousState && !CurrentState;
-	}
-
-	bool GetDown()
-	{
-		return !PreviousState && CurrentState;
-	}
-};
-
-struct InputDevice
-{
-	KeyState Keys[ENUM_TO_UINT(InputKeys::TOTAL)];
-};
-
-struct Input
-{
-	InputDevice Devices[2];
-
-	bool Get(InputKeys Key)
-	{
-		if (Key == InputKeys::TOTAL)
-			return false;
-
-		bool DetectedInput = false;
-		int DeviceIndex = 0;
-		do
-		{
-			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].Get();
-			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
-
-		return DetectedInput;
-	}
-
-	bool GetUp(InputKeys Key)
-	{
-		if (Key == InputKeys::TOTAL)
-			return false;
-
-		bool DetectedInput = false;
-		int DeviceIndex = 0;
-		do
-		{
-			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].GetUp();
-			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
-
-		return DetectedInput;
-	}
-
-	bool GetDown(InputKeys Key)
-	{
-		if (Key == InputKeys::TOTAL)
-			return false;
-
-		bool DetectedInput = false;
-		int DeviceIndex = 0;
-		do
-		{
-			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].GetDown();
-			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
-
-		return DetectedInput;
-	}
-};
 
 bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 {
@@ -151,43 +72,7 @@ bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 	return true;
 }
 
-void UpdateInput(Input* InInput)
-{
 
-	for (int i = 0; i < ENUM_TO_UINT(InputDevices::TOTAL); ++i)
-	{
-		InputDevice Device = InInput->Devices[i];
-		for (int j = 0; j < ENUM_TO_UINT(InputKeys::TOTAL); ++j)
-		{
-			Device.Keys[j].PreviousState = Device.Keys[j].CurrentState;
-		}
-	}
-
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = (GetAsyncKeyState(VK_UP) & 0x8000) != 0 || (GetAsyncKeyState('W') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
-
-	DWORD Result;
-	XINPUT_STATE State;
-	ZeroMemory(&State, sizeof(XINPUT_STATE));
-
-	// Simply get the state of the controller from XInput.
-	Result = XInputGetState(0, &State);
-
-	if (Result == ERROR_SUCCESS)
-	{
-		// Controller is connected 
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-	}
-	else
-	{
-		// Controller is not connected 
-	}
-}
 
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -219,9 +104,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	MSG Message = {};
 	Vector3 Direction = Vector3(0, 0, 0);
-	Vector3 Position = Vector3(100, 50, 0);
-	float Speed = 500.0f;
+
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
+	MovementDirection CurrentDirection = MovementDirection::NONE;
+	TileMapCoordinate SnakePosition;
+	SnakePosition.Row = TILE_MAP_ROWS / 2;
+	SnakePosition.Column = TILE_MAP_COLLUMNS / 2;
+
 	Vector3 TileSize(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
 	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
@@ -234,6 +123,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 				TileMap[Column][Row] = TileMapValue::FLOOR;
 		}
 	}
+
+	TileMap[SnakePosition.Column][SnakePosition.Row] = TileMapValue::SNAKE;
+
+
+	float MovementDelay = 0.5f;
+	float MovementCounter = 0.0f;
+
 	while (bRun)
 	{
 		while (PeekMessage(&Message, WinVariables.WindowHandle, 0, 0, PM_REMOVE))
@@ -248,25 +144,46 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		Vector3 NewPosition = Vector3();
 		if (InputManager.Get(InputKeys::LEFT))
-			Direction.X = -1;
+			CurrentDirection = MovementDirection::LEFT;
 		else if (InputManager.Get(InputKeys::RIGHT))
-			Direction.X = 1;
-		else
-			Direction.X = 0;
+			CurrentDirection = MovementDirection::RIGHT;
 
 		if (InputManager.Get(InputKeys::DOWN))
-			Direction.Y = -1;
+			CurrentDirection = MovementDirection::DOWN;
 		else if (InputManager.Get(InputKeys::UP))
-			Direction.Y = 1;
-		else
-			Direction.Y = 0;
+			CurrentDirection = MovementDirection::UP;
 
-		NewPosition = Position + Direction * Speed * ElapsedTime;
+		MovementCounter += ElapsedTime;
+		if (CurrentDirection != MovementDirection::NONE && MovementCounter>= MovementDelay)
+		{
+			TileMapCoordinate TargetPosition = SnakePosition;
+			switch (CurrentDirection)
+			{
 
-		bool CanMove = NewPosition.X > 0 && NewPosition.X + TileSize.X < WINDOW_WIDTH && NewPosition.Y > 0 && NewPosition.Y + TileSize.Y < WINDOW_HEIGHT;
+			case MovementDirection::UP:
+				TargetPosition.Row -= 1;
+				break;
+			case MovementDirection::DOWN:
+				TargetPosition.Row += 1;
+				break;
+			case MovementDirection::LEFT:
+				TargetPosition.Column -= 1;
+				break;
+			case MovementDirection::RIGHT:
+				TargetPosition.Column += 1;
+				break;
+			}
+			bool CanMove = TargetPosition.Column >= 1 && TargetPosition.Column < TILE_MAP_COLLUMNS-1 && TargetPosition.Row >= 1 && TargetPosition.Row < TILE_MAP_ROWS-1;
+			if (CanMove)
+			{
+				TileMap[SnakePosition.Column][SnakePosition.Row] = TileMapValue::FLOOR;
+				TileMap[TargetPosition.Column][TargetPosition.Row] = TileMapValue::SNAKE;
+				SnakePosition = TargetPosition;
+			}
 
-		if (CanMove)
-			Position += Direction * Speed* ElapsedTime;
+			MovementCounter = 0.0f;
+		}
+
 
 		Renderer.Begin();
 
@@ -296,7 +213,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			}
 		}
 
-		Renderer.DrawRectangle(Position, TileSize, Vector4(1.0, 0.0, 0.0, 1.0));
 
 		Renderer.End();
 

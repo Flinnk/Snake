@@ -146,6 +146,7 @@
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\SnakeInput.h" />
     <ClInclude Include="..\..\..\include\SnakeMath.h" />
     <ClInclude Include="..\..\..\include\SnakeRenderer.h" />
   </ItemGroup>
