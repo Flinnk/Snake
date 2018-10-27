@@ -29,7 +29,7 @@ public:
 	void Clear(const Vector4& Color);
 	void Begin();
 
-	void DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color);
+	void DrawRectangle(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color);
 	void End();
 
 	void Present();

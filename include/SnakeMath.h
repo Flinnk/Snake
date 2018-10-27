@@ -30,6 +30,15 @@ struct Vector3
 
 		return *this;
 	}
+
+	Vector3& operator*=(const float& Other)
+	{
+		X *= Other;
+		Y *= Other;
+		Z *= Other;
+
+		return *this;
+	}
 };
 
 struct Vector4

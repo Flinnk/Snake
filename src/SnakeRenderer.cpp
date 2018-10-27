@@ -267,7 +267,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		IBD[Index + 3] = LastIndex + 3;
 		IBD[Index + 4] = LastIndex + 1;
 		IBD[Index + 5] = LastIndex;
-		LastIndex +=  4;
+		LastIndex += 4;
 	}
 
 	/*IBD[0] = 0;
@@ -338,31 +338,31 @@ void Renderer::End()
 	DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
 }
 
-void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color)
+void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
 {
 	if (VertexBufferPointer == nullptr)
 		return;
 
 	//Vertex1
-	VertexBufferPointer->Position = Vector3(Position.X, Position.Y+Size.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X+Offset.X, Position.Y + Size.Y-Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
 
 	++VertexBufferPointer;
 
 	//Vertex2
-	VertexBufferPointer->Position = Vector3(Position.X+Size.X, Position.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X + Size.X-Offset.X, Position.Y+Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
 
 	++VertexBufferPointer;
 
 	//Vertex3
-	VertexBufferPointer->Position = Vector3(Position.X, Position.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X+Offset.X, Position.Y+Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
 
 	++VertexBufferPointer;
 
 	//Vertex4
-	VertexBufferPointer->Position = Vector3(Position.X+Size.X, Position.Y+Size.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X + Size.X-Offset.Y, Position.Y + Size.Y-Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
 
 	++VertexBufferPointer;
@@ -374,7 +374,7 @@ void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector4 Color)
 		End();
 		Begin();
 	}
-		
+
 }
 
 void Renderer::Release()
