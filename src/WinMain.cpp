@@ -9,6 +9,7 @@
 
 #define TILE_MAP_COLLUMNS 16
 #define TILE_MAP_ROWS 12
+#define SNAKE_BODY_TOTAL 8
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
@@ -100,6 +101,51 @@ TileMapCoordinate GetRandomPositionForApple(TileMapValue TileMap[][TILE_MAP_ROWS
 }
 
 
+void RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue TileMap[][TILE_MAP_ROWS])
+{
+	Renderer.Begin();
+
+	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
+	{
+		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
+		{
+			TileMapValue TileValue = TileMap[Column][Row];
+			Vector3 TilePosition(Column*TileSize.X, WINDOW_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
+			Vector4 Color;
+			Vector3 Offset(0, 0, 0);
+			switch (TileValue)
+			{
+			case TileMapValue::FLOOR:
+				Color = Vector4(0.0, 0.0, 0.0, 1.0);
+				break;
+			case TileMapValue::WALL:
+				Color = Vector4(0.23, 0.15, 0.95, 1.0);
+				break;
+			case TileMapValue::HEAD:
+				Color = Vector4(0, 1, 0, 1.0);
+				break;
+			case TileMapValue::BODY:
+				Color = Vector4(0, 1, 0, 1.0);
+				Offset = TileSize * 0.2f;
+				break;
+			case TileMapValue::APPLE:
+				Color = Vector4(1, 0, 0, 1.0);
+				Offset = TileSize * 0.3f;
+				break;
+			default:
+				Color = Vector4(1.0, 0.0, 1.0, 1.0);
+			}
+
+			Renderer.DrawRectangle(TilePosition, TileSize, Offset, Color);
+		}
+	}
+
+
+	Renderer.End();
+
+	Renderer.Present();
+}
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	srand(time(NULL));
@@ -138,10 +184,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	InitialSnakePosition.Row = TILE_MAP_ROWS / 2;
 	InitialSnakePosition.Column = TILE_MAP_COLLUMNS / 2;
 	TileMapCoordinate SnakePosition = InitialSnakePosition;
+	TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL];
+	unsigned int CurrentBodyPartsCount = 0;
+
 	TileMapCoordinate ApplePosition;
 
 	unsigned int Score = 0;
-
 
 	Vector3 TileSize(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
 	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
@@ -161,7 +209,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ApplePosition = GetRandomPositionForApple(TileMap);
 	TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
 
-	float MovementDelay = 0.5f;
+	float MovementDelay = 0.2f;
 	float MovementCounter = 0.0f;
 
 	while (bRun)
@@ -227,70 +275,106 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 				ApplePosition = GetRandomPositionForApple(TileMap);
 				TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
+
+				CurrentBodyPartsCount = 0;
 			}
 			else if (TargetPositionValue == TileMapValue::APPLE)
 			{
-				TileMap[SnakePosition.Column][SnakePosition.Row] = TileMapValue::FLOOR;
-				TileMap[TargetPosition.Column][TargetPosition.Row] = TileMapValue::HEAD;
+				
+				if (CurrentBodyPartsCount < SNAKE_BODY_TOTAL)
+				{
+					if (CurrentBodyPartsCount == 0)
+					{
+						SnakeBodyParts[CurrentBodyPartsCount] = SnakePosition;
+					}
+					else
+					{
+						SnakeBodyParts[CurrentBodyPartsCount] = SnakeBodyParts[CurrentBodyPartsCount - 1];
+
+					}
+
+					++CurrentBodyPartsCount;
+				}
+
+				if (CurrentBodyPartsCount > 0)
+				{
+					for (int Index = CurrentBodyPartsCount - 1; Index > 0; --Index)
+					{
+						SnakeBodyParts[Index] = SnakeBodyParts[Index - 1];
+					}
+					SnakeBodyParts[0] = SnakePosition;
+				}
+
 				SnakePosition = TargetPosition;
 				Score += 100;
-				
+
 				ApplePosition = GetRandomPositionForApple(TileMap);
 				TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
 
 			}
-			else
+			else if (TargetPositionValue == TileMapValue::FLOOR)
 			{
-				TileMap[SnakePosition.Column][SnakePosition.Row] = TileMapValue::FLOOR;
-				TileMap[TargetPosition.Column][TargetPosition.Row] = TileMapValue::HEAD;
+				
+				if (CurrentBodyPartsCount > 0)
+				{
+					for (int Index = CurrentBodyPartsCount - 1; Index > 0; --Index)
+					{
+						SnakeBodyParts[Index] = SnakeBodyParts[Index - 1];
+					}
+					SnakeBodyParts[0] = SnakePosition;
+				}
+
 				SnakePosition = TargetPosition;
+			}
+			else//BODY
+			{
+				for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
+				{
+					for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
+					{
+						if (Row == 0 || Column == 0 || Row == TILE_MAP_ROWS - 1 || Column == TILE_MAP_COLLUMNS - 1)
+							TileMap[Column][Row] = TileMapValue::WALL;
+						else
+							TileMap[Column][Row] = TileMapValue::FLOOR;
+					}
+				}
+				CurrentDirection = MovementDirection::NONE;
+				SnakePosition = InitialSnakePosition;
+				TileMap[InitialSnakePosition.Column][InitialSnakePosition.Row] = TileMapValue::HEAD;
+
+				ApplePosition = GetRandomPositionForApple(TileMap);
+				TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
+
+				CurrentBodyPartsCount = 0;
 			}
 
 			MovementCounter = 0.0f;
-		}
 
-
-		Renderer.Begin();
-
-		for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
-		{
-			for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
+			for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
 			{
-				TileMapValue TileValue = TileMap[Column][Row];
-				Vector3 TilePosition(Column*TileSize.X, WINDOW_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
-				Vector4 Color;
-				Vector3 Offset(0, 0, 0);
-				switch (TileValue)
+				for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
 				{
-				case TileMapValue::FLOOR:
-					Color = Vector4(0.0, 0.0, 0.0, 1.0);
-					break;
-				case TileMapValue::WALL:
-					Color = Vector4(0.23, 0.15, 0.95, 1.0);
-					break;
-				case TileMapValue::HEAD:
-					Color = Vector4(0, 1, 0, 1.0);
-					break;
-				case TileMapValue::BODY:
-					Color = Vector4(0, 1, 0, 1.0);
-					Offset = TileSize * 0.05f;
-					break;
-				case TileMapValue::APPLE:
-					Color = Vector4(1, 0, 0, 1.0);
-					Offset = TileSize * 0.3f;
-					break;
-				default:
-					Color = Vector4(1.0, 0.0, 1.0, 1.0);
+					if (TileMap[Column][Row] == TileMapValue::APPLE|| TileMap[Column][Row] == TileMapValue::WALL|| TileMap[Column][Row] == TileMapValue::WALL)
+						continue;
+					if (Row == 0 || Column == 0 || Row == TILE_MAP_ROWS - 1 || Column == TILE_MAP_COLLUMNS - 1)
+						TileMap[Column][Row] = TileMapValue::WALL;
+					else
+						TileMap[Column][Row] = TileMapValue::FLOOR;
 				}
+			}
 
-				Renderer.DrawRectangle(TilePosition, TileSize, Offset, Color);
+			TileMap[SnakePosition.Column][SnakePosition.Row] = TileMapValue::HEAD;
+			//TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
+			for (int Index = 0; Index < CurrentBodyPartsCount; ++Index)
+			{
+				TileMap[SnakeBodyParts[Index].Column][SnakeBodyParts[Index].Row] = TileMapValue::BODY;
+
 			}
 		}
 
 
-		Renderer.End();
 
-		Renderer.Present();
+		RenderGame(Renderer, TileSize, TileMap);
 
 		LARGE_INTEGER CurrentCounter;
 		QueryPerformanceCounter(&CurrentCounter);
