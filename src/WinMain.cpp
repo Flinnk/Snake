@@ -1,15 +1,47 @@
 #include <string>
 #include <SnakeMath.h>
-#include <SnakeRenderer.h>
-#include <SnakeInput.h>
 #include <time.h>
+#include <GameScene.h>
+#include <Constants.h>
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
 
-#define TILE_MAP_COLLUMNS 16
-#define TILE_MAP_ROWS 12
-#define SNAKE_BODY_TOTAL 24
+void UpdateInput(Input* InInput)
+{
+
+	for (int i = 0; i < ENUM_TO_UINT(InputDevices::TOTAL); ++i)
+	{
+		InputDevice Device = InInput->Devices[i];
+		for (int j = 0; j < ENUM_TO_UINT(InputKeys::TOTAL); ++j)
+		{
+			Device.Keys[j].PreviousState = Device.Keys[j].CurrentState;
+		}
+	}
+
+	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = (GetAsyncKeyState(VK_UP) & 0x8000) != 0 || (GetAsyncKeyState('W') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
+
+	DWORD Result;
+	XINPUT_STATE State;
+	ZeroMemory(&State, sizeof(XINPUT_STATE));
+
+	// Simply get the state of the controller from XInput.
+	Result = XInputGetState(0, &State);
+
+	if (Result == ERROR_SUCCESS)
+	{
+		// Controller is connected 
+		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+	}
+	else
+	{
+		// Controller is not connected 
+	}
+}
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowSystemErrorMessage(const char* Message);
@@ -20,34 +52,6 @@ struct WindowsVariables
 {
 	HWND WindowHandle;
 };
-
-enum class TileMapValue
-{
-	FLOOR,
-	WALL,
-	HEAD,
-	BODY,
-	APPLE
-};
-
-enum class MovementDirection
-{
-	NONE,
-	UP,
-	DOWN,
-	LEFT,
-	RIGHT
-};
-
-struct TileMapCoordinate
-{
-	TileMapCoordinate() :Row(0), Column(0) {}
-
-	TileMapCoordinate(unsigned int RowParam, unsigned int ColumnParam) :Row(RowParam), Column(ColumnParam) {}
-	unsigned int Row;
-	unsigned int Column;
-};
-
 
 
 bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
@@ -79,123 +83,10 @@ bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 }
 
 
-TileMapCoordinate GetRandomPositionForApple(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
-{
-	TileMapCoordinate CandidateCoordinates[TILE_MAP_ROWS*TILE_MAP_COLLUMNS];
-	unsigned int CandidateCount = 0;
-
-	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
-	{
-		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
-		{
-			if (TileMap[Column][Row] == TileMapValue::FLOOR)
-			{
-				CandidateCoordinates[CandidateCount] = TileMapCoordinate(Row, Column);
-				++CandidateCount;
-			}
-		}
-	}
-
-	unsigned int RandomValue = rand() % (CandidateCount - 1);
-	return CandidateCoordinates[RandomValue];
-}
-
-void MoveSnake(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount, TileMapCoordinate TargetPosition)
-{
-	TileMapCoordinate PreviousCoordinate = SnakeBodyParts[0];
-	for (int Index = 0; Index < CurrentBodyPartsCount; ++Index)
-	{
-		if (Index == 0)
-		{
-			TileMap[SnakeBodyParts[Index].Column][SnakeBodyParts[Index].Row] = TileMapValue::FLOOR;
-			SnakeBodyParts[Index] = TargetPosition;
-			TileMap[SnakeBodyParts[Index].Column][SnakeBodyParts[Index].Row] = TileMapValue::HEAD;
-		}
-		else
-		{
-			TileMap[SnakeBodyParts[Index].Column][SnakeBodyParts[Index].Row] = TileMapValue::FLOOR;
-			TileMapCoordinate TmpCoordinate = SnakeBodyParts[Index];
-			SnakeBodyParts[Index] = PreviousCoordinate;
-			PreviousCoordinate = TmpCoordinate;
-			TileMap[SnakeBodyParts[Index].Column][SnakeBodyParts[Index].Row] = TileMapValue::BODY;
-		}
-	}
-}
-
-void ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount)
-{
-	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
-	{
-		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
-		{
-			if (Row == 0 || Column == 0 || Row == TILE_MAP_ROWS - 1 || Column == TILE_MAP_COLLUMNS - 1)
-				TileMap[Column][Row] = TileMapValue::WALL;
-			else
-				TileMap[Column][Row] = TileMapValue::FLOOR;
-		}
-	}
-	CurrentDirection = MovementDirection::NONE;
-	TileMapCoordinate InitialSnakePosition;
-	InitialSnakePosition.Row = TILE_MAP_ROWS / 2;
-	InitialSnakePosition.Column = TILE_MAP_COLLUMNS / 2;
-	SnakeBodyParts[0] = InitialSnakePosition;
-	TileMap[InitialSnakePosition.Column][InitialSnakePosition.Row] = TileMapValue::HEAD;
-
-	TileMapCoordinate ApplePosition = GetRandomPositionForApple(TileMap);
-	TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
-
-	CurrentBodyPartsCount = 1;
-}
-
-void RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
-{
-	Renderer.Begin();
-
-	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
-	{
-		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
-		{
-			TileMapValue TileValue = TileMap[Column][Row];
-			Vector3 TilePosition(Column*TileSize.X, WINDOW_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
-			Vector4 Color;
-			Vector3 Offset(0, 0, 0);
-			switch (TileValue)
-			{
-			case TileMapValue::FLOOR:
-				Color = Vector4(0.0, 0.0, 0.0, 1.0);
-				break;
-			case TileMapValue::WALL:
-				Color = Vector4(0.23, 0.15, 0.95, 1.0);
-				break;
-			case TileMapValue::HEAD:
-				Color = Vector4(0, 1, 0, 1.0);
-				break;
-			case TileMapValue::BODY:
-				Color = Vector4(0, 1, 0, 1.0);
-				Offset = TileSize * 0.2f;
-				break;
-			case TileMapValue::APPLE:
-				Color = Vector4(1, 0, 0, 1.0);
-				Offset = TileSize * 0.3f;
-				break;
-			default:
-				Color = Vector4(1.0, 0.0, 1.0, 1.0);
-			}
-
-			Renderer.DrawRectangle(TilePosition, TileSize, Offset, Color);
-		}
-	}
-
-
-	Renderer.End();
-
-	Renderer.Present();
-}
-
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	srand(time(NULL));
-
+	GameScene Game;
 	WindowsVariables WinVariables;
 	Renderer Renderer;
 	Input InputManager;
@@ -222,33 +113,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	float ElapsedTime = 0;
 
 	MSG Message = {};
-	Vector3 Direction = Vector3(0, 0, 0);
-
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
-	MovementDirection CurrentDirection = MovementDirection::NONE;
 
-	TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL];
-	unsigned int CurrentBodyPartsCount = 1;
-
-	unsigned int Score = 0;
-
-	Vector3 TileSize(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
-	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
-	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
-	{
-		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
-		{
-			if (Row == 0 || Column == 0 || Row == TILE_MAP_ROWS - 1 || Column == TILE_MAP_COLLUMNS - 1)
-				TileMap[Column][Row] = TileMapValue::WALL;
-			else
-				TileMap[Column][Row] = TileMapValue::FLOOR;
-		}
-	}
-
-	ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
-
-	float MovementDelay = 0.1f;
-	float MovementCounter = 0.0f;
+	Game.Enter();
+	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::GAME;
+	SceneIdentifier NextSceneIdentifier = SceneIdentifier::GAME;
+	Scene* CurrentScene = &Game;
 
 	while (bRun)
 	{
@@ -262,75 +132,27 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		Renderer.Clear(ClearColor);
 
-		//Get Direction
-		Vector3 NewPosition = Vector3();
-		if (InputManager.Get(InputKeys::LEFT) && CurrentDirection != MovementDirection::RIGHT)
-			CurrentDirection = MovementDirection::LEFT;
-		else if (InputManager.Get(InputKeys::RIGHT) && CurrentDirection != MovementDirection::LEFT)
-			CurrentDirection = MovementDirection::RIGHT;
-
-		if (InputManager.Get(InputKeys::DOWN) && CurrentDirection != MovementDirection::UP)
-			CurrentDirection = MovementDirection::DOWN;
-		else if (InputManager.Get(InputKeys::UP) && CurrentDirection != MovementDirection::DOWN)
-			CurrentDirection = MovementDirection::UP;
-
-		//Execute movement at certain spped
-		MovementCounter += ElapsedTime;
-		if (CurrentDirection != MovementDirection::NONE && MovementCounter >= MovementDelay)
+		if (NextSceneIdentifier != CurrentSceneIdentifier)
 		{
-			TileMapCoordinate TargetPosition = SnakeBodyParts[0];
-			switch (CurrentDirection)
+			CurrentScene->Exit();
+			CurrentSceneIdentifier = NextSceneIdentifier;
+			switch (CurrentSceneIdentifier)
 			{
-
-			case MovementDirection::UP:
-				TargetPosition.Row -= 1;
-				break;
-			case MovementDirection::DOWN:
-				TargetPosition.Row += 1;
-				break;
-			case MovementDirection::LEFT:
-				TargetPosition.Column -= 1;
-				break;
-			case MovementDirection::RIGHT:
-				TargetPosition.Column += 1;
-				break;
-			}
-
-			TileMapValue TargetPositionValue = TileMap[TargetPosition.Column][TargetPosition.Row];
-			if (TargetPositionValue == TileMapValue::WALL)
-			{
-				ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
-			}
-			else if (TargetPositionValue == TileMapValue::APPLE)
-			{
-
-				if (CurrentBodyPartsCount < SNAKE_BODY_TOTAL)//Increase snake size
+			case SceneIdentifier::INTRO:
 				{
-					SnakeBodyParts[CurrentBodyPartsCount] = SnakeBodyParts[CurrentBodyPartsCount - 1];
-					++CurrentBodyPartsCount;
+				//CurrentScene =
+					break;
 				}
-
-				MoveSnake(TileMap, SnakeBodyParts, CurrentBodyPartsCount, TargetPosition);
-
-				Score += 100;
-
-				TileMapCoordinate ApplePosition = GetRandomPositionForApple(TileMap);
-				TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
-
+			case SceneIdentifier::GAME:
+				{
+				CurrentScene = &Game;
+					break;
+				}
 			}
-			else if (TargetPositionValue == TileMapValue::FLOOR)
-			{
-				MoveSnake(TileMap,SnakeBodyParts,CurrentBodyPartsCount,TargetPosition);
-			}
-			else//BODY
-			{
-				ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
-			}
-
-			MovementCounter = 0.0f;
+			CurrentScene->Enter();
 		}
 
-		RenderGame(Renderer, TileSize, TileMap);
+		NextSceneIdentifier = CurrentScene->Update(ElapsedTime, InputManager, Renderer);
 
 		LARGE_INTEGER CurrentCounter;
 		QueryPerformanceCounter(&CurrentCounter);
@@ -344,6 +166,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		SetWindowText(WinVariables.WindowHandle, Buffer);
 
 	}
+
+	Game.Exit();
 
 	Renderer.Release();
 	return 0;

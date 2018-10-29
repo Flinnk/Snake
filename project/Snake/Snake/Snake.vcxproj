@@ -142,10 +142,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\GameScene.cpp" />
     <ClCompile Include="..\..\..\src\SnakeRenderer.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\Constants.h" />
+    <ClInclude Include="..\..\..\include\GameScene.h" />
+    <ClInclude Include="..\..\..\include\Scene.h" />
     <ClInclude Include="..\..\..\include\SnakeInput.h" />
     <ClInclude Include="..\..\..\include\SnakeMath.h" />
     <ClInclude Include="..\..\..\include\SnakeRenderer.h" />
