@@ -9,6 +9,7 @@ enum class InputKeys : UINT
 	DOWN,
 	LEFT,
 	RIGHT,
+	START,
 	TOTAL
 };
 
@@ -21,8 +22,8 @@ enum class InputDevices
 
 struct KeyState
 {
-	bool CurrentState;
-	bool PreviousState;
+	bool CurrentState = false;
+	bool PreviousState = false;
 
 	bool Get()
 	{

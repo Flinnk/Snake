@@ -2,6 +2,7 @@
 #include <SnakeMath.h>
 #include <time.h>
 #include <GameScene.h>
+#include <IntroScene.h>
 #include <Constants.h>
 
 
@@ -21,6 +22,7 @@ void UpdateInput(Input* InInput)
 	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
 	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
 	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::START)].CurrentState = (GetAsyncKeyState(VK_RETURN) & 0x8000) != 0;
 
 	DWORD Result;
 	XINPUT_STATE State;
@@ -36,6 +38,8 @@ void UpdateInput(Input* InInput)
 		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
 		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
 		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::START)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_START;
+
 	}
 	else
 	{
@@ -87,6 +91,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	srand(time(NULL));
 	GameScene Game;
+	IntroScene Intro;
 	WindowsVariables WinVariables;
 	Renderer Renderer;
 	Input InputManager;
@@ -115,10 +120,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG Message = {};
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
 
-	Game.Enter();
-	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::GAME;
-	SceneIdentifier NextSceneIdentifier = SceneIdentifier::GAME;
-	Scene* CurrentScene = &Game;
+	Intro.Enter();
+	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
+	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
+	Scene* CurrentScene = &Intro;
 
 	while (bRun)
 	{
@@ -131,6 +136,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		UpdateInput(&InputManager);
 
 		Renderer.Clear(ClearColor);
+		Renderer.Begin();
 
 		if (NextSceneIdentifier != CurrentSceneIdentifier)
 		{
@@ -140,7 +146,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			{
 			case SceneIdentifier::INTRO:
 				{
-				//CurrentScene =
+				CurrentScene = &Intro;
 					break;
 				}
 			case SceneIdentifier::GAME:
@@ -153,6 +159,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 
 		NextSceneIdentifier = CurrentScene->Update(ElapsedTime, InputManager, Renderer);
+
+		Renderer.End();
+
+		Renderer.Present();
 
 		LARGE_INTEGER CurrentCounter;
 		QueryPerformanceCounter(&CurrentCounter);

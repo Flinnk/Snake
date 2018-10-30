@@ -154,7 +154,6 @@ void GameScene::ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]
 
 void GameScene::RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
 {
-	Renderer.Begin();
 
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
 	{
@@ -192,9 +191,6 @@ void GameScene::RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue T
 	}
 
 
-	Renderer.End();
-
-	Renderer.Present();
 }
 
 void GameScene::MoveSnake(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount, TileMapCoordinate TargetPosition)
