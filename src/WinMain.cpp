@@ -4,7 +4,135 @@
 #include <GameScene.h>
 #include <IntroScene.h>
 #include <Constants.h>
+#include <xaudio2.h>
 
+#define fourccRIFF 'FFIR'
+#define fourccDATA 'atad'
+#define fourccFMT ' tmf'
+#define fourccWAVE 'EVAW'
+#define fourccXWMA 'AMWX'
+#define fourccDPDS 'sdpd'
+
+static HRESULT FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
+{
+	HRESULT hr = S_OK;
+	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN))
+		return HRESULT_FROM_WIN32(GetLastError());
+
+	DWORD dwChunkType;
+	DWORD dwChunkDataSize;
+	DWORD dwRIFFDataSize = 0;
+	DWORD dwFileType;
+	DWORD bytesRead = 0;
+	DWORD dwOffset = 0;
+
+	while (hr == S_OK)
+	{
+		DWORD dwRead;
+		if (0 == ReadFile(File, &dwChunkType, sizeof(DWORD), &dwRead, NULL))
+			hr = HRESULT_FROM_WIN32(GetLastError());
+
+		if (0 == ReadFile(File, &dwChunkDataSize, sizeof(DWORD), &dwRead, NULL))
+			hr = HRESULT_FROM_WIN32(GetLastError());
+
+		switch (dwChunkType)
+		{
+		case fourccRIFF:
+			dwRIFFDataSize = dwChunkDataSize;
+			dwChunkDataSize = 4;
+			if (0 == ReadFile(File, &dwFileType, sizeof(DWORD), &dwRead, NULL))
+				hr = HRESULT_FROM_WIN32(GetLastError());
+			break;
+
+		default:
+			if (INVALID_SET_FILE_POINTER == SetFilePointer(File, dwChunkDataSize, NULL, FILE_CURRENT))
+				return HRESULT_FROM_WIN32(GetLastError());
+		}
+
+		dwOffset += sizeof(DWORD) * 2;
+
+		if (dwChunkType == fourcc)
+		{
+			dwChunkSize = dwChunkDataSize;
+			dwChunkDataPosition = dwOffset;
+			return S_OK;
+		}
+
+		dwOffset += dwChunkDataSize;
+
+		if (bytesRead >= dwRIFFDataSize) return S_FALSE;
+
+	}
+
+	return S_OK;
+
+}
+
+
+static HRESULT ReadChunkData(HANDLE File, void * buffer, DWORD buffersize, DWORD bufferoffset)
+{
+	HRESULT hr = S_OK;
+	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, bufferoffset, NULL, FILE_BEGIN))
+		return HRESULT_FROM_WIN32(GetLastError());
+	DWORD dwRead;
+	if (0 == ReadFile(File, buffer, buffersize, &dwRead, NULL))
+		hr = HRESULT_FROM_WIN32(GetLastError());
+	return hr;
+}
+
+bool LoadAudio(const char* FilePath, IXAudio2* XAudio2, IXAudio2SourceVoice** AudioSource, BYTE** BufferDataPointer)
+{
+	HANDLE File = CreateFile(
+		FilePath,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		0,
+		NULL);
+
+	if (INVALID_HANDLE_VALUE == File)
+		return false;
+
+	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN))
+		return false;
+
+	WAVEFORMATEXTENSIBLE WAVEFORMAT = { 0 };
+	XAUDIO2_BUFFER Buffer = { 0 };
+
+	DWORD ChunkSize;
+	DWORD ChunkPosition;
+	//check the file type, should be fourccWAVE or 'XWMA'
+	FindChunk(File, fourccRIFF, ChunkSize, ChunkPosition);
+	DWORD filetype;
+	ReadChunkData(File, &filetype, sizeof(DWORD), ChunkPosition);
+	if (filetype != fourccWAVE)
+		return false;
+
+	FindChunk(File, fourccFMT, ChunkSize, ChunkPosition);
+	ReadChunkData(File, &WAVEFORMAT, ChunkSize, ChunkPosition);
+
+	//fill out the audio data buffer with the contents of the fourccDATA chunk
+	FindChunk(File, fourccDATA, ChunkSize, ChunkPosition);
+	BYTE * DataBuffer = new BYTE[ChunkSize];
+	ReadChunkData(File, DataBuffer, ChunkSize, ChunkPosition);
+
+	Buffer.AudioBytes = ChunkSize;  //buffer containing audio data
+	Buffer.pAudioData = DataBuffer;  //size of the audio buffer in bytes
+	Buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
+	Buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+	IXAudio2SourceVoice* SourceVoice;
+	HRESULT hr;
+	if (FAILED(hr = XAudio2->CreateSourceVoice(&SourceVoice, (WAVEFORMATEX*)&WAVEFORMAT)))
+		return false;
+
+	if (FAILED(hr = SourceVoice->SubmitSourceBuffer(&Buffer)))
+		return false;
+
+	*AudioSource = SourceVoice;
+	*BufferDataPointer = DataBuffer;
+	return true;
+}
 
 void UpdateInput(Input* InInput)
 {
@@ -125,6 +253,29 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
 	Scene* CurrentScene = &Intro;
 
+
+	//Temp Audio Stuff
+	IXAudio2* XAudio2;
+	IXAudio2MasteringVoice* MasterVoice;
+	HRESULT Result = XAudio2Create(&XAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	if (FAILED(Result))
+		ShowSystemErrorMessage("Failed to create XAudio2");
+
+	if (FAILED(Result = XAudio2->CreateMasteringVoice(&MasterVoice)))
+		ShowSystemErrorMessage("Failed to create MasterVoice");
+
+	IXAudio2SourceVoice* SourceVoice = nullptr;
+	BYTE * DataBuffer = nullptr;
+
+	if (!LoadAudio("zone-of-danger.wav", XAudio2, &SourceVoice, &DataBuffer))
+		ShowSystemErrorMessage("Failed to load audio");
+
+	if (SourceVoice) 
+	{
+		SourceVoice->SetVolume(0.1, 0);
+		SourceVoice->Start(0, 0);
+	}
+
 	while (bRun)
 	{
 		while (PeekMessage(&Message, WinVariables.WindowHandle, 0, 0, PM_REMOVE))
@@ -145,15 +296,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			switch (CurrentSceneIdentifier)
 			{
 			case SceneIdentifier::INTRO:
-				{
+			{
 				CurrentScene = &Intro;
-					break;
-				}
+				break;
+			}
 			case SceneIdentifier::GAME:
-				{
+			{
 				CurrentScene = &Game;
-					break;
-				}
+				break;
+			}
 			}
 			CurrentScene->Enter();
 		}
@@ -180,6 +331,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	Game.Exit();
 
 	Renderer.Release();
+	if (SourceVoice)
+	{
+		SourceVoice->Stop();
+		SourceVoice->DestroyVoice();
+	}
+	if (DataBuffer)
+		delete DataBuffer;
+	XAudio2->Release();
 	return 0;
 }
 
