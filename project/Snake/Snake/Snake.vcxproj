@@ -144,6 +144,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\GameScene.cpp" />
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
+    <ClCompile Include="..\..\..\src\SnakeAudio.cpp" />
     <ClCompile Include="..\..\..\src\SnakeRenderer.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
@@ -152,6 +153,7 @@
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
     <ClInclude Include="..\..\..\include\Scene.h" />
+    <ClInclude Include="..\..\..\include\SnakeAudio.h" />
     <ClInclude Include="..\..\..\include\SnakeInput.h" />
     <ClInclude Include="..\..\..\include\SnakeMath.h" />
     <ClInclude Include="..\..\..\include\SnakeRenderer.h" />
