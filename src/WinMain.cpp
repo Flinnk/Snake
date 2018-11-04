@@ -57,6 +57,16 @@ struct WindowsVariables
 	HWND WindowHandle;
 };
 
+struct State
+{
+	GameScene Game;
+	IntroScene Intro;
+	WindowsVariables WinVariables;
+	Renderer Renderer;
+	Input InputManager;
+	AudioManager Audio;
+	bool HasFocus = true;
+};
 
 bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 {
@@ -91,25 +101,19 @@ bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	srand(time(NULL));
-	GameScene Game;
-	IntroScene Intro;
-	WindowsVariables WinVariables;
-	Renderer Renderer;
-	Input InputManager;
-	AudioManager Audio;
+	State GameState;
 
-	if (!InitializeWindow(hInstance, &WinVariables))
+	if (!InitializeWindow(hInstance, &GameState.WinVariables))
 	{
 		ShowSystemErrorMessage("Failed to create window");
 		return 0;
 	}
 
-	SetWindowLongPtr(WinVariables.WindowHandle, GWLP_USERDATA, (LONG)&InputManager);
+	SetWindowLongPtr(GameState.WinVariables.WindowHandle, GWLP_USERDATA, (LONG_PTR)&GameState);
 
-
-	if (!Renderer.Initialize(WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
+	if (!GameState.Renderer.Initialize(GameState.WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
 	{
-		Renderer.Release();
+		GameState.Renderer.Release();
 		return 0;
 	}
 
@@ -122,20 +126,20 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG Message = {};
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
 
-	Intro.Enter();
+	GameState.Intro.Enter();
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
-	Scene* CurrentScene = &Intro;
+	Scene* CurrentScene = &GameState.Intro;
 
 
-	if (!Audio.Initialize())
+	if (!GameState.Audio.Initialize())
 		ShowSystemErrorMessage("Failed to initialize AudioSystem");
 	AudioClip Clip;
 
 	IXAudio2SourceVoice* SourceVoice = nullptr;
 	BYTE * DataBuffer = nullptr;
 
-	if (!Audio.LoadAudio("zone-of-danger.wav", &Clip, false))
+	if (!GameState.Audio.LoadAudio("zone-of-danger.wav", &Clip, true))
 		ShowSystemErrorMessage("Failed to load audio");
 
 	Clip.SetVolume(0.1);
@@ -143,61 +147,64 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	while (bRun)
 	{
-		while (PeekMessage(&Message, WinVariables.WindowHandle, 0, 0, PM_REMOVE))
+		while (PeekMessage(&Message, GameState.WinVariables.WindowHandle, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&Message);
 			DispatchMessage(&Message);
 		}
 
-		UpdateInput(&InputManager);
-
-		Renderer.Clear(ClearColor);
-		Renderer.Begin();
-
-		if (NextSceneIdentifier != CurrentSceneIdentifier)
+		if (GameState.HasFocus)//If we dont have focus we should put the process to sleep to not waste cpu
 		{
-			CurrentScene->Exit();
-			CurrentSceneIdentifier = NextSceneIdentifier;
-			switch (CurrentSceneIdentifier)
+			UpdateInput(&GameState.InputManager);
+
+			GameState.Renderer.Clear(ClearColor);
+			GameState.Renderer.Begin();
+
+			if (NextSceneIdentifier != CurrentSceneIdentifier)
 			{
-			case SceneIdentifier::INTRO:
-			{
-				CurrentScene = &Intro;
-				break;
+				CurrentScene->Exit();
+				CurrentSceneIdentifier = NextSceneIdentifier;
+				switch (CurrentSceneIdentifier)
+				{
+				case SceneIdentifier::INTRO:
+				{
+					CurrentScene = &GameState.Intro;
+					break;
+				}
+				case SceneIdentifier::GAME:
+				{
+					CurrentScene = &GameState.Game;
+					break;
+				}
+				}
+				CurrentScene->Enter();
 			}
-			case SceneIdentifier::GAME:
-			{
-				CurrentScene = &Game;
-				break;
-			}
-			}
-			CurrentScene->Enter();
+
+			NextSceneIdentifier = CurrentScene->Update(ElapsedTime, GameState.InputManager, GameState.Renderer);
+
+			GameState.Renderer.End();
+
+			GameState.Renderer.Present();
+
+			LARGE_INTEGER CurrentCounter;
+			QueryPerformanceCounter(&CurrentCounter);
+
+			LONGLONG ElapsedCounter = CurrentCounter.QuadPart - LastCounter.QuadPart;
+			ElapsedTime = (float(ElapsedCounter) / float(Frequency.QuadPart));
+			LastCounter = CurrentCounter;
+
+			char Buffer[2048];
+			snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedTime))).c_str());
+			SetWindowText(GameState.WinVariables.WindowHandle, Buffer);
 		}
-
-		NextSceneIdentifier = CurrentScene->Update(ElapsedTime, InputManager, Renderer);
-
-		Renderer.End();
-
-		Renderer.Present();
-
-		LARGE_INTEGER CurrentCounter;
-		QueryPerformanceCounter(&CurrentCounter);
-
-		LONGLONG ElapsedCounter = CurrentCounter.QuadPart - LastCounter.QuadPart;
-		ElapsedTime = (float(ElapsedCounter) / float(Frequency.QuadPart));
-		LastCounter = CurrentCounter;
-
-		char Buffer[2048];
-		snprintf(Buffer, sizeof(Buffer), "Snake | m/s: %s | fps: %s", std::to_string(ElapsedTime*1000.0f).c_str(), std::to_string((int)trunc(1 / (ElapsedTime))).c_str());
-		SetWindowText(WinVariables.WindowHandle, Buffer);
 
 	}
 
-	Game.Exit();
+	GameState.Game.Exit();
 
-	Renderer.Release();
+	GameState.Renderer.Release();
 	Clip.Release();
-	Audio.Release();
+	GameState.Audio.Release();
 
 	return 0;
 }
@@ -215,42 +222,26 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		bRun = false;
 		return 0;
-		/*case WM_KEYDOWN:
-		case WM_SYSKEYDOWN:
+	case WM_SETFOCUS:
+	{
+		State* GameState = (State*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		if (GameState)
 		{
-			Input* InputManager = (Input*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-			unsigned int KeyCode = wParam;
-			bool KeyRepeat = (lParam >> 30) == 1;
-			if (!KeyRepeat)
-			{
-				if (KeyCode == VK_UP)
-					InputManager->Keyboard.Down.CurrentState = true;
-				if (KeyCode == VK_DOWN)
-					InputManager->Keyboard.Down.CurrentState = true;
-				if (KeyCode == VK_LEFT)
-					InputManager->Keyboard.Left.CurrentState = true;
-				if (KeyCode == VK_RIGHT)
-					InputManager->Keyboard.Right.CurrentState = true;
-			}
-			return 0;
+			GameState->HasFocus = true;
+			GameState->Audio.StartEngine();
 		}
-		case WM_KEYUP:
-		case WM_SYSKEYUP:
+		break;
+	}
+	case WM_KILLFOCUS:
+	{
+		State* GameState = (State*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		if (GameState) 
 		{
-			Input* InputManager = (Input*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-			unsigned int KeyCode = wParam;
-			if (KeyCode == VK_UP)
-				InputManager->Keyboard.Up.CurrentState = false;
-			if (KeyCode == VK_DOWN)
-				InputManager->Keyboard.Down.CurrentState = false;
-			if (KeyCode == VK_LEFT)
-				InputManager->Keyboard.Left.CurrentState = false;
-			if (KeyCode == VK_RIGHT)
-				InputManager->Keyboard.Right.CurrentState = false;
-			return 0;
-		}*/
+			GameState->HasFocus = false;
+			GameState->Audio.StopEngine();
+		}
+		break;
+	}
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}

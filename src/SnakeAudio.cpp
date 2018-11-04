@@ -137,6 +137,16 @@ void AudioManager::Release()
 	XAudio2->Release();
 }
 
+void AudioManager::StopEngine()
+{
+	XAudio2->StopEngine();
+}
+
+void AudioManager::StartEngine()
+{
+	XAudio2->StartEngine();
+}
+
 void AudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * DataBufferParameter)
 {
 	SourceVoice = SourceVoiceParameter;

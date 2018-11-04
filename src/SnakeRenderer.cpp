@@ -106,6 +106,21 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		return false;
 	}
 
+	IDXGIDevice * pDXGIDevice;
+	Device->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+
+	IDXGIAdapter * pDXGIAdapter;
+	pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+
+	IDXGIFactory * pIDXGIFactory;
+	pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+
+	pIDXGIFactory->MakeWindowAssociation(WindowHandle, DXGI_MWA_NO_ALT_ENTER);//Disable ALT+ENTER to go FULLSCREEN
+
+	pIDXGIFactory->Release();
+	pDXGIAdapter->Release();
+	pDXGIDevice->Release();
+
 	ID3D11Texture2D* BackBuffer = nullptr;
 	SwapChain->GetBuffer(0, IID_PPV_ARGS(&BackBuffer));
 	Device->CreateRenderTargetView(BackBuffer, 0, &RenderTargetView);

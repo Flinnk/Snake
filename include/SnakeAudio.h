@@ -29,6 +29,8 @@ public:
 	bool Initialize();
 	bool LoadAudio(const char* FilePath, AudioClip* Clip, bool Loop);
 	void Release();
+	void StopEngine();
+	void StartEngine();
 private:
 
 	HRESULT FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition);
