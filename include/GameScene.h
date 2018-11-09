@@ -43,8 +43,8 @@ public:
 		TileSize = Vector3(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
 	}
 
-	void Enter();
-	void Exit();
+	void Enter(Renderer& Render);
+	void Exit(Renderer& Render);
 	SceneIdentifier Update(float ElapsedTime, Input& InputManager, Renderer& Render);
 private:
 	void ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount);

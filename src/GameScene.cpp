@@ -1,6 +1,6 @@
 #include <GameScene.h>
 
-void GameScene::Enter()
+void GameScene::Enter(Renderer& Render)
 {
 	CurrentDirection = MovementDirection::NONE;
 
@@ -26,13 +26,16 @@ void GameScene::Enter()
 	MovementCounter = 0.0f;
 }
 
-void GameScene::Exit()
+void GameScene::Exit(Renderer& Render)
 {
 
 }
 
 SceneIdentifier GameScene::Update(float ElapsedTime, Input& InputManager, Renderer& Render)
 {
+	if (InputManager.GetDown(InputKeys::START))
+		return SceneIdentifier::INTRO;
+
 	//Get Direction
 	Vector3 NewPosition = Vector3();
 	if (InputManager.Get(InputKeys::LEFT) && CurrentDirection != MovementDirection::RIGHT)
@@ -186,7 +189,7 @@ void GameScene::RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue T
 				Color = Vector4(1.0, 0.0, 1.0, 1.0);
 			}
 
-			Renderer.DrawRectangle(TilePosition, TileSize, Offset, Color);
+			Renderer.DrawSprite(TilePosition, TileSize, Offset, Color);
 		}
 	}
 

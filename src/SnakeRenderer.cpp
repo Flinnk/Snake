@@ -1,9 +1,8 @@
 #include <SnakeRenderer.h>
 #include <d3dcompiler.h>
+#include <stb/stb_image.h>
 
-#define D3D_SAFE_RELEASE(x) \
-if(x)\
-	x->Release();\
+
 
 static const char ShaderCode[] = "\
 	cbuffer BufferPerBatch  \
@@ -14,12 +13,14 @@ static const char ShaderCode[] = "\
 {\
 	float4 Position : POSITION;\
 	float4 Color : COLOR;\
+	float2 UV: TEXCOORD0;\
 };\
 \
 struct PixelInput\
 {\
 	float4 Position : SV_POSITION;\
 	float4 Color : COLOR;\
+	float2 UV: TEXCOORD0;\
 };\
 \
 PixelInput VS(VertexInput Input)\
@@ -28,12 +29,16 @@ PixelInput VS(VertexInput Input)\
 	Input.Position.w = 1;\
 	Output.Color = Input.Color;\
 	Output.Position = mul(Projection,Input.Position);\
+	Output.UV = Input.UV;\
 	return Output;\
 }\
 \
+\ Texture2D shaderTexture;\
+\ SamplerState sampleType;\
+\
 float4 PS(PixelInput Input) : SV_TARGET\
 {\
-	return Input.Color;\
+	return shaderTexture.Sample(sampleType,Input.UV)*Input.Color;\
 }\
 ";
 
@@ -193,7 +198,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		return false;
 	}
 
-	D3D11_INPUT_ELEMENT_DESC Elements[2];
+	D3D11_INPUT_ELEMENT_DESC Elements[3];
 	Elements[0].SemanticName = "POSITION";
 	Elements[0].SemanticIndex = 0;
 	Elements[0].AlignedByteOffset = 0;
@@ -210,7 +215,15 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	Elements[1].InstanceDataStepRate = 0;
 	Elements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
-	Result = Device->CreateInputLayout(Elements, 2, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout);
+	Elements[2].SemanticName = "TEXCOORD";
+	Elements[2].SemanticIndex = 0;
+	Elements[2].AlignedByteOffset = Elements[1].AlignedByteOffset + sizeof(float) * 4;
+	Elements[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	Elements[2].InputSlot = 0;
+	Elements[2].InstanceDataStepRate = 0;
+	Elements[2].Format = DXGI_FORMAT_R32G32_FLOAT;
+
+	Result = Device->CreateInputLayout(Elements, 3, VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), &InputLayout);
 	if (FAILED(Result))
 	{
 		return false;
@@ -325,6 +338,71 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	DeviceContext->Unmap(ConstantBuffer, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
 
+	//Create 1x1 pixel white texture
+	int Channels = 4;
+	unsigned char ImageData[4] = { 255,255,255,255 };
+
+	// Create texture
+	D3D11_TEXTURE2D_DESC desc;
+	desc.Width = 1;
+	desc.Height = 1;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	desc.CPUAccessFlags = 0;
+	desc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA initData;
+	initData.pSysMem = ImageData;
+	initData.SysMemPitch = Width * Channels * sizeof(char);
+	initData.SysMemSlicePitch = 0;
+
+	ID3D11Texture2D* STexture = nullptr;
+	ID3D11ShaderResourceView* TextureView = nullptr;
+	Device->CreateTexture2D(&desc, &initData, &STexture);
+	if (STexture)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		memset(&SRVDesc, 0, sizeof(SRVDesc));
+		SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MipLevels = 1;
+
+		HRESULT hr = Device->CreateShaderResourceView(STexture, &SRVDesc, &TextureView);
+		if (FAILED(hr))
+		{
+			STexture->Release();
+			return false;
+		}
+	}
+
+	D3D11_SAMPLER_DESC SamplerDesc;
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	SamplerDesc.MipLODBias = 0.0f;
+	SamplerDesc.MaxAnisotropy = 1;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	SamplerDesc.BorderColor[0] = 0;
+	SamplerDesc.BorderColor[1] = 0;
+	SamplerDesc.BorderColor[2] = 0;
+	SamplerDesc.BorderColor[3] = 0;
+	SamplerDesc.MinLOD = 0;
+	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	Result = Device->CreateSamplerState(&SamplerDesc, &SamplerState);
+	if (FAILED(Result))
+	{
+		return false;
+	}
+
+	SpriteTexture = Texture(STexture, TextureView);
+	DeviceContext->PSSetSamplers(0, 1, &SamplerState);
+
 	return true;
 }
 
@@ -350,35 +428,50 @@ void Renderer::Begin()
 void Renderer::End()
 {
 	DeviceContext->Unmap(VertexBuffer, 0);
+	DeviceContext->PSSetShaderResources(0, 1, &LastDrawnTexture->TextureView);
 	DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
 }
 
-void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
+void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* Texture)
 {
 	if (VertexBufferPointer == nullptr)
 		return;
 
-	//Vertex1
-	VertexBufferPointer->Position = Vector3(Position.X+Offset.X, Position.Y + Size.Y-Offset.Y, Position.Z);
-	VertexBufferPointer->Color = Color;
+	if (Texture == nullptr)
+		Texture = &SpriteTexture;
 
+	if (LastDrawnTexture && LastDrawnTexture != Texture)
+	{
+		End();
+		Begin();
+	}
+
+	LastDrawnTexture = Texture;
+
+	//Vertex1
+	VertexBufferPointer->Position = Vector3(Position.X + Offset.X, Position.Y + Size.Y - Offset.Y, Position.Z);
+	VertexBufferPointer->Color = Color;
+	VertexBufferPointer->UV = Vector3(0, 0, 0);
 	++VertexBufferPointer;
 
 	//Vertex2
-	VertexBufferPointer->Position = Vector3(Position.X + Size.X-Offset.X, Position.Y+Offset.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X + Size.X - Offset.X, Position.Y + Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
+	VertexBufferPointer->UV = Vector3(1, 1, 0);
 
 	++VertexBufferPointer;
 
 	//Vertex3
-	VertexBufferPointer->Position = Vector3(Position.X+Offset.X, Position.Y+Offset.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X + Offset.X, Position.Y + Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
+	VertexBufferPointer->UV = Vector3(0, 1, 0);
 
 	++VertexBufferPointer;
 
 	//Vertex4
-	VertexBufferPointer->Position = Vector3(Position.X + Size.X-Offset.Y, Position.Y + Size.Y-Offset.Y, Position.Z);
+	VertexBufferPointer->Position = Vector3(Position.X + Size.X - Offset.Y, Position.Y + Size.Y - Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
+	VertexBufferPointer->UV = Vector3(1, 0, 0);
 
 	++VertexBufferPointer;
 
@@ -392,8 +485,60 @@ void Renderer::DrawRectangle(Vector3 Position, Vector3 Size, Vector3 Offset, Vec
 
 }
 
+Texture Renderer::LoadTextureFromFile(const char* Path)
+{
+	int Width = 0;
+	int Height = 0;
+	int Channels = 0;
+	stbi_set_flip_vertically_on_load(false);
+	unsigned char* ImageData = stbi_load(Path, &Width, &Height, &Channels, 0);
+
+	// Create texture
+	D3D11_TEXTURE2D_DESC desc;
+	desc.Width = Width;
+	desc.Height = Height;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	desc.CPUAccessFlags = 0;
+	desc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA initData;
+	initData.pSysMem = ImageData;
+	initData.SysMemPitch = Width * Channels * sizeof(char);
+	initData.SysMemSlicePitch = 0;
+
+	ID3D11Texture2D* STexture = nullptr;
+	ID3D11ShaderResourceView* TextureView = nullptr;
+	Device->CreateTexture2D(&desc, &initData, &STexture);
+	if (STexture)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+		memset(&SRVDesc, 0, sizeof(SRVDesc));
+		SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MipLevels = 1;
+
+		HRESULT hr = Device->CreateShaderResourceView(STexture, &SRVDesc, &TextureView);
+		if (FAILED(hr))
+		{
+			STexture->Release();
+		}
+	}
+
+	stbi_image_free(ImageData);
+
+	return Texture(STexture, TextureView);
+}
+
 void Renderer::Release()
 {
+	D3D_SAFE_RELEASE(SamplerState);
+	SpriteTexture.Release();
 	D3D_SAFE_RELEASE(VertexBuffer);
 	D3D_SAFE_RELEASE(IndexBuffer);
 	D3D_SAFE_RELEASE(ConstantBuffer);

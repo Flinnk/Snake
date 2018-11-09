@@ -72,22 +72,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)\..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\..\..\tmp\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\include;$(SolutionDir)\..\..\external;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)\..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\..\..\tmp\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\include;$(SolutionDir)\..\..\external;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\..\..\tmp\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\include;$(SolutionDir)\..\..\external;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\..\..\tmp\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\..\..\include;$(SolutionDir)\..\..\external;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -146,6 +146,7 @@
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
     <ClCompile Include="..\..\..\src\SnakeAudio.cpp" />
     <ClCompile Include="..\..\..\src\SnakeRenderer.cpp" />
+    <ClCompile Include="..\..\..\src\stb_image.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -5,9 +5,9 @@ class IntroScene : public Scene
 {
 public:
 
-	void Enter();
-	void Exit();
+	void Enter(Renderer& Render);
+	void Exit(Renderer& Render);
 	SceneIdentifier Update(float ElapsedTime, Input& InputManager, Renderer& Render);
 private:
-
+	Texture TestSprite;
 };

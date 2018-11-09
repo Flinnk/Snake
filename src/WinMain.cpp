@@ -5,13 +5,14 @@
 #include <IntroScene.h>
 #include <Constants.h>
 #include <SnakeAudio.h>
+#include <Core.h>
 
 void UpdateInput(Input* InInput)
 {
 
 	for (int i = 0; i < ENUM_TO_UINT(InputDevices::TOTAL); ++i)
 	{
-		InputDevice Device = InInput->Devices[i];
+		InputDevice&  Device = InInput->Devices[i];
 		for (int j = 0; j < ENUM_TO_UINT(InputKeys::TOTAL); ++j)
 		{
 			Device.Keys[j].PreviousState = Device.Keys[j].CurrentState;
@@ -67,6 +68,8 @@ struct State
 	AudioManager Audio;
 	bool HasFocus = true;
 };
+
+
 
 bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 {
@@ -126,7 +129,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG Message = {};
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
 
-	GameState.Intro.Enter();
+	GameState.Intro.Enter(GameState.Renderer);
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
 	Scene* CurrentScene = &GameState.Intro;
@@ -143,7 +146,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		ShowSystemErrorMessage("Failed to load audio");
 
 	Clip.SetVolume(0.1);
-	Clip.Play();
+	//Clip.Play();
 
 	while (bRun)
 	{
@@ -162,7 +165,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			if (NextSceneIdentifier != CurrentSceneIdentifier)
 			{
-				CurrentScene->Exit();
+				CurrentScene->Exit(GameState.Renderer);
 				CurrentSceneIdentifier = NextSceneIdentifier;
 				switch (CurrentSceneIdentifier)
 				{
@@ -177,7 +180,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 					break;
 				}
 				}
-				CurrentScene->Enter();
+				CurrentScene->Enter(GameState.Renderer);
 			}
 
 			NextSceneIdentifier = CurrentScene->Update(ElapsedTime, GameState.InputManager, GameState.Renderer);
@@ -200,7 +203,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	}
 
-	GameState.Game.Exit();
+	GameState.Game.Exit(GameState.Renderer);
 
 	GameState.Renderer.Release();
 	Clip.Release();
