@@ -1,3 +1,4 @@
+#pragma warning(disable:4996)
 #include <string>
 #include <SnakeMath.h>
 #include <time.h>
@@ -6,7 +7,9 @@
 #include <Constants.h>
 #include <SnakeAudio.h>
 #include <Core.h>
-
+#include <stb/stb_truetype.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
 void UpdateInput(Input* InInput)
 {
 
@@ -203,12 +206,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	}
 
+	GameState.Intro.Exit(GameState.Renderer);
+
 	GameState.Game.Exit(GameState.Renderer);
 
 	GameState.Renderer.Release();
 	Clip.Release();
 	GameState.Audio.Release();
-
 	return 0;
 }
 
@@ -238,7 +242,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_KILLFOCUS:
 	{
 		State* GameState = (State*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-		if (GameState) 
+		if (GameState)
 		{
 			GameState->HasFocus = false;
 			GameState->Audio.StopEngine();

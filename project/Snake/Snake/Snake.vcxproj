@@ -147,6 +147,7 @@
     <ClCompile Include="..\..\..\src\SnakeAudio.cpp" />
     <ClCompile Include="..\..\..\src\SnakeRenderer.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
+    <ClCompile Include="..\..\..\src\stb_truetype.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>

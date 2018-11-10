@@ -5,7 +5,10 @@
 
 #define D3D_SAFE_RELEASE(x) \
 if(x)\
+{\
 	x->Release();\
+	x = nullptr;\
+}\
 
 #define NUM_RECT_BATCH 250
 #define VERTEX_PER_RECT 4
@@ -60,6 +63,7 @@ public:
 	void Begin();
 
 	Texture LoadTextureFromFile(const char* Path);
+	Texture LoadTextureFromMemory(const unsigned char* Data,int TextureWidth,int TextureHeight,int TextureChannels);
 	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* SpriteTexture = nullptr);
 	void End();
 
