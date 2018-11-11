@@ -4,6 +4,7 @@
 #include <stb/stb_truetype.h>
 #include <string>
 
+stbtt_bakedchar cdata[255]; // ASCII 32..126 is 95 glyphs
 void IntroScene::Enter(Renderer& Render)
 {
 
@@ -20,9 +21,8 @@ void IntroScene::Enter(Renderer& Render)
 	fclose(fontFile);
 
 	unsigned char temp_bitmap[512 * 512];
-	stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
 
-	int result = stbtt_BakeFontBitmap(fontBuffer, 0, 58, temp_bitmap, 512, 512, 32, 96, cdata); // no guarantee this fits!
+	int result = stbtt_BakeFontBitmap(fontBuffer, 0, 48, temp_bitmap, 512, 512, 0, 255, cdata); // no guarantee this fits!
 
 	TestSprite = Render.LoadTextureFromMemory(temp_bitmap, 512, 512, 1);
 	free(fontBuffer);
@@ -40,7 +40,26 @@ SceneIdentifier IntroScene::Update(float ElapsedTime, Input& InputManager, Rende
 	if (InputManager.GetDown(InputKeys::START))
 		return SceneIdentifier::GAME;
 
-	Render.DrawSprite(Vector3(0, 0, 0), Vector3(800, 600, 0), Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite);
+	//Render.DrawSprite(Vector3(0, 0, 0), Vector3(800, 600, 0), Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite);
+	const char* SampleText = "Snake";
+	int xOffset = 0;
+	for (int i = 0; i < strlen(SampleText); ++i)
+	{
+		Vector3 Size(50, 50, 0);
+		const char Character = SampleText[i];
+		if (Character != ' ')
+		{
+			stbtt_bakedchar CharInfo = cdata[Character];
+			Vector3 UVPos(CharInfo.x0 / 512.0, CharInfo.y0 / 512.0, 0);
+			Vector3 UVSize(CharInfo.x1 / 512.0, CharInfo.y1 / 512.0, 0);
+			Render.DrawSprite(Vector3(0 + xOffset, 0, 0), Size, Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite, UVPos, UVSize);
+			xOffset += Size.X;
+		}
+		else
+		{
+			xOffset += Size.X;
+		}
+	}
 
 	return SceneIdentifier::INTRO;
 }

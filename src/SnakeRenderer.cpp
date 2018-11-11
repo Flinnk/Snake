@@ -432,7 +432,7 @@ void Renderer::End()
 	DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
 }
 
-void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* Texture)
+void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* Texture, Vector3 UVPos, Vector3 UVSize)
 {
 	if (VertexBufferPointer == nullptr)
 		return;
@@ -451,27 +451,27 @@ void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector
 	//Vertex1
 	VertexBufferPointer->Position = Vector3(Position.X + Offset.X, Position.Y + Size.Y - Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
-	VertexBufferPointer->UV = Vector3(0, 0, 0);
+	VertexBufferPointer->UV = UVPos;
 	++VertexBufferPointer;
 
 	//Vertex2
 	VertexBufferPointer->Position = Vector3(Position.X + Size.X - Offset.X, Position.Y + Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
-	VertexBufferPointer->UV = Vector3(1, 1, 0);
+	VertexBufferPointer->UV = UVSize;
 
 	++VertexBufferPointer;
 
 	//Vertex3
 	VertexBufferPointer->Position = Vector3(Position.X + Offset.X, Position.Y + Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
-	VertexBufferPointer->UV = Vector3(0, 1, 0);
+	VertexBufferPointer->UV = Vector3(UVPos.X, UVSize.Y, 0);
 
 	++VertexBufferPointer;
 
 	//Vertex4
 	VertexBufferPointer->Position = Vector3(Position.X + Size.X - Offset.Y, Position.Y + Size.Y - Offset.Y, Position.Z);
 	VertexBufferPointer->Color = Color;
-	VertexBufferPointer->UV = Vector3(1, 0, 0);
+	VertexBufferPointer->UV = Vector3(UVSize.X, UVPos.Y, 0);
 
 	++VertexBufferPointer;
 

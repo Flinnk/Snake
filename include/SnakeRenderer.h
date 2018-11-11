@@ -63,8 +63,8 @@ public:
 	void Begin();
 
 	Texture LoadTextureFromFile(const char* Path);
-	Texture LoadTextureFromMemory(const unsigned char* Data,int TextureWidth,int TextureHeight,int TextureChannels);
-	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* SpriteTexture = nullptr);
+	Texture LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels);
+	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* SpriteTexture = nullptr, Vector3 UVPos = Vector3(0, 0, 0), Vector3 UVSize = Vector3(1, 1, 0));
 	void End();
 
 	void Present();
