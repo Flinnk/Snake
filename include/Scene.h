@@ -1,6 +1,5 @@
 #pragma once
-#include "SnakeRenderer.h"
-#include "SnakeInput.h"
+#include <Engine.h>
 
 enum class SceneIdentifier : unsigned int
 {
@@ -11,7 +10,7 @@ enum class SceneIdentifier : unsigned int
 class Scene
 {
 public:
-	virtual void Enter(Renderer& Render) = 0;
-	virtual void Exit(Renderer& Render) = 0;
-	virtual SceneIdentifier Update(float ElapsedTime,Input& InputManager, Renderer& Render) = 0;
+	virtual void Enter() = 0;
+	virtual void Exit() = 0;
+	virtual SceneIdentifier Update(float ElapsedTime) = 0;
 };

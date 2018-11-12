@@ -3,7 +3,7 @@
 #include <Xinput.h>
 #define ENUM_TO_UINT(x) static_cast<unsigned int>(x)
 
-enum class InputKeys : UINT
+enum class EInputKeys : UINT
 {
 	UP = 0,
 	DOWN,
@@ -13,14 +13,14 @@ enum class InputKeys : UINT
 	TOTAL
 };
 
-enum class InputDevices
+enum class EInputDevices
 {
 	KEYBOARD = 0,
 	GAMEPAD,
 	TOTAL
 };
 
-struct KeyState
+struct SKeyState
 {
 	bool CurrentState = false;
 	bool PreviousState = false;
@@ -41,18 +41,18 @@ struct KeyState
 	}
 };
 
-struct InputDevice
+struct SInputDevice
 {
-	KeyState Keys[ENUM_TO_UINT(InputKeys::TOTAL)];
+	SKeyState Keys[ENUM_TO_UINT(EInputKeys::TOTAL)];
 };
 
-struct Input
+class CInput
 {
-	InputDevice Devices[2];
-
-	bool Get(InputKeys Key)
+public:
+	SInputDevice Devices[2];
+	bool Get(EInputKeys Key)
 	{
-		if (Key == InputKeys::TOTAL)
+		if (Key == EInputKeys::TOTAL)
 			return false;
 
 		bool DetectedInput = false;
@@ -61,14 +61,14 @@ struct Input
 		{
 			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].Get();
 			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
+		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(EInputDevices::TOTAL));
 
 		return DetectedInput;
 	}
 
-	bool GetUp(InputKeys Key)
+	bool GetUp(EInputKeys Key)
 	{
-		if (Key == InputKeys::TOTAL)
+		if (Key == EInputKeys::TOTAL)
 			return false;
 
 		bool DetectedInput = false;
@@ -77,14 +77,14 @@ struct Input
 		{
 			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].GetUp();
 			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
+		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(EInputDevices::TOTAL));
 
 		return DetectedInput;
 	}
 
-	bool GetDown(InputKeys Key)
+	bool GetDown(EInputKeys Key)
 	{
-		if (Key == InputKeys::TOTAL)
+		if (Key == EInputKeys::TOTAL)
 			return false;
 
 		bool DetectedInput = false;
@@ -93,7 +93,7 @@ struct Input
 		{
 			DetectedInput = Devices[DeviceIndex].Keys[ENUM_TO_UINT(Key)].GetDown();
 			++DeviceIndex;
-		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(InputDevices::TOTAL));
+		} while (!DetectedInput && DeviceIndex < ENUM_TO_UINT(EInputDevices::TOTAL));
 
 		return DetectedInput;
 	}

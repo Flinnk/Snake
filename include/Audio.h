@@ -8,10 +8,10 @@
 #define fourccXWMA 'AMWX'
 #define fourccDPDS 'sdpd'
 
-class AudioClip
+class CAudioClip
 {
 public:
-	AudioClip() :SourceVoice(nullptr), DataBuffer(nullptr) {}
+	CAudioClip() :SourceVoice(nullptr), DataBuffer(nullptr) {}
 	void Initialize(IXAudio2SourceVoice* SourceVoice, BYTE * DataBuffer);
 	void Play();
 	void Stop();
@@ -22,12 +22,12 @@ private:
 	BYTE * DataBuffer;
 };
 
-class AudioManager
+class CAudioManager
 {
 public:
-	AudioManager() :XAudio2(nullptr), MasterVoice(nullptr) {}
+	CAudioManager() :XAudio2(nullptr), MasterVoice(nullptr) {}
 	bool Initialize();
-	bool LoadAudio(const char* FilePath, AudioClip* Clip, bool Loop);
+	bool LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop);
 	void Release();
 	void StopEngine();
 	void StartEngine();

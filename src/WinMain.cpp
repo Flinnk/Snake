@@ -1,32 +1,32 @@
 #pragma warning(disable:4996)
 #include <string>
-#include <SnakeMath.h>
+#include <Math.h>
 #include <time.h>
 #include <GameScene.h>
 #include <IntroScene.h>
 #include <Constants.h>
-#include <SnakeAudio.h>
+#include <Audio.h>
 #include <Core.h>
 #include <stb/stb_truetype.h>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb/stb_image_write.h>
-void UpdateInput(Input* InInput)
+#include <Engine.h>
+
+void UpdateInput(CInput* InInput)
 {
 
-	for (int i = 0; i < ENUM_TO_UINT(InputDevices::TOTAL); ++i)
+	for (int i = 0; i < ENUM_TO_UINT(EInputDevices::TOTAL); ++i)
 	{
-		InputDevice&  Device = InInput->Devices[i];
-		for (int j = 0; j < ENUM_TO_UINT(InputKeys::TOTAL); ++j)
+		SInputDevice&  Device = InInput->Devices[i];
+		for (int j = 0; j < ENUM_TO_UINT(EInputKeys::TOTAL); ++j)
 		{
 			Device.Keys[j].PreviousState = Device.Keys[j].CurrentState;
 		}
 	}
 
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = (GetAsyncKeyState(VK_UP) & 0x8000) != 0 || (GetAsyncKeyState('W') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(InputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(InputKeys::START)].CurrentState = (GetAsyncKeyState(VK_RETURN) & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::UP)].CurrentState = (GetAsyncKeyState(VK_UP) & 0x8000) != 0 || (GetAsyncKeyState('W') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
+	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::START)].CurrentState = (GetAsyncKeyState(VK_RETURN) & 0x8000) != 0;
 
 	DWORD Result;
 	XINPUT_STATE State;
@@ -38,11 +38,11 @@ void UpdateInput(Input* InInput)
 	if (Result == ERROR_SUCCESS)
 	{
 		// Controller is connected 
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::UP)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-		InInput->Devices[ENUM_TO_UINT(InputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(InputKeys::START)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_START;
+		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::UP)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::START)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_START;
 
 	}
 	else
@@ -63,12 +63,8 @@ struct WindowsVariables
 
 struct State
 {
-	GameScene Game;
-	IntroScene Intro;
+	Scene* CurrentScene;
 	WindowsVariables WinVariables;
-	Renderer Renderer;
-	Input InputManager;
-	AudioManager Audio;
 	bool HasFocus = true;
 };
 
@@ -104,10 +100,20 @@ bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 }
 
 
+CEngine Engine;
+
+CEngine* GetEngine()
+{
+	return &Engine;
+}
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	srand(time(NULL));
 	State GameState;
+	
+	unsigned int IntroSize = sizeof(IntroScene);
+	unsigned int GameSize = sizeof(GameScene);
 
 	if (!InitializeWindow(hInstance, &GameState.WinVariables))
 	{
@@ -117,9 +123,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	SetWindowLongPtr(GameState.WinVariables.WindowHandle, GWLP_USERDATA, (LONG_PTR)&GameState);
 
-	if (!GameState.Renderer.Initialize(GameState.WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
+	if (!Engine.Renderer.Initialize(GameState.WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
 	{
-		GameState.Renderer.Release();
+		Engine.Renderer.Release();
 		return 0;
 	}
 
@@ -132,23 +138,19 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG Message = {};
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
 
-	GameState.Intro.Enter(GameState.Renderer);
+	GameState.CurrentScene = new IntroScene();
+	GameState.CurrentScene->Enter();
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
-	Scene* CurrentScene = &GameState.Intro;
 
-
-	if (!GameState.Audio.Initialize())
+	if (!Engine.AudioManager.Initialize())
 		ShowSystemErrorMessage("Failed to initialize AudioSystem");
-	AudioClip Clip;
+	/*CAudioClip Clip;
 
-	IXAudio2SourceVoice* SourceVoice = nullptr;
-	BYTE * DataBuffer = nullptr;
-
-	if (!GameState.Audio.LoadAudio("zone-of-danger.wav", &Clip, true))
+	if (!Engine.AudioManager.LoadAudio("zone-of-danger.wav", &Clip, true))
 		ShowSystemErrorMessage("Failed to load audio");
 
-	Clip.SetVolume(0.1);
+	Clip.SetVolume(0.1);*/
 	//Clip.Play();
 
 	while (bRun)
@@ -161,36 +163,36 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		if (GameState.HasFocus)//If we dont have focus we should put the process to sleep to not waste cpu
 		{
-			UpdateInput(&GameState.InputManager);
+			UpdateInput(&Engine.Input);
 
-			GameState.Renderer.Clear(ClearColor);
-			GameState.Renderer.Begin();
+			Engine.Renderer.Clear(ClearColor);
+			Engine.Renderer.Begin();
 
 			if (NextSceneIdentifier != CurrentSceneIdentifier)
 			{
-				CurrentScene->Exit(GameState.Renderer);
+				GameState.CurrentScene->Exit();
+				delete GameState.CurrentScene;
 				CurrentSceneIdentifier = NextSceneIdentifier;
 				switch (CurrentSceneIdentifier)
 				{
 				case SceneIdentifier::INTRO:
 				{
-					CurrentScene = &GameState.Intro;
+					GameState.CurrentScene = new IntroScene();
 					break;
 				}
 				case SceneIdentifier::GAME:
 				{
-					CurrentScene = &GameState.Game;
+					GameState.CurrentScene = new GameScene();
 					break;
 				}
 				}
-				CurrentScene->Enter(GameState.Renderer);
+				GameState.CurrentScene->Enter();
 			}
 
-			NextSceneIdentifier = CurrentScene->Update(ElapsedTime, GameState.InputManager, GameState.Renderer);
+			NextSceneIdentifier = GameState.CurrentScene->Update(ElapsedTime);
 
-			GameState.Renderer.End();
-
-			GameState.Renderer.Present();
+			Engine.Renderer.End();
+			Engine.Renderer.Present();
 
 			LARGE_INTEGER CurrentCounter;
 			QueryPerformanceCounter(&CurrentCounter);
@@ -206,13 +208,15 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	}
 
-	GameState.Intro.Exit(GameState.Renderer);
+	if (GameState.CurrentScene)
+	{
+		GameState.CurrentScene->Exit();
+		delete GameState.CurrentScene;
+	}
 
-	GameState.Game.Exit(GameState.Renderer);
-
-	GameState.Renderer.Release();
-	Clip.Release();
-	GameState.Audio.Release();
+	Engine.Renderer.Release();
+	//Clip.Release();
+	Engine.AudioManager.Release();
 	return 0;
 }
 
@@ -235,7 +239,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = true;
-			GameState->Audio.StartEngine();
+			GetEngine()->AudioManager.StartEngine();
 		}
 		break;
 	}
@@ -245,7 +249,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = false;
-			GameState->Audio.StopEngine();
+			GetEngine()->AudioManager.StopEngine();
 		}
 		break;
 	}

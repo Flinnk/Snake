@@ -1,6 +1,6 @@
 #include <GameScene.h>
 
-void GameScene::Enter(Renderer& Render)
+void GameScene::Enter()
 {
 	CurrentDirection = MovementDirection::NONE;
 
@@ -26,26 +26,28 @@ void GameScene::Enter(Renderer& Render)
 	MovementCounter = 0.0f;
 }
 
-void GameScene::Exit(Renderer& Render)
+void GameScene::Exit()
 {
 
 }
 
-SceneIdentifier GameScene::Update(float ElapsedTime, Input& InputManager, Renderer& Render)
+SceneIdentifier GameScene::Update(float ElapsedTime)
 {
-	if (InputManager.GetDown(InputKeys::START))
+	CInput& InputManager = GetEngine()->Input;
+
+	if (InputManager.GetDown(EInputKeys::START))
 		return SceneIdentifier::INTRO;
 
 	//Get Direction
 	Vector3 NewPosition = Vector3();
-	if (InputManager.Get(InputKeys::LEFT) && CurrentDirection != MovementDirection::RIGHT)
+	if (InputManager.Get(EInputKeys::LEFT) && CurrentDirection != MovementDirection::RIGHT)
 		CurrentDirection = MovementDirection::LEFT;
-	else if (InputManager.Get(InputKeys::RIGHT) && CurrentDirection != MovementDirection::LEFT)
+	else if (InputManager.Get(EInputKeys::RIGHT) && CurrentDirection != MovementDirection::LEFT)
 		CurrentDirection = MovementDirection::RIGHT;
 
-	if (InputManager.Get(InputKeys::DOWN) && CurrentDirection != MovementDirection::UP)
+	if (InputManager.Get(EInputKeys::DOWN) && CurrentDirection != MovementDirection::UP)
 		CurrentDirection = MovementDirection::DOWN;
-	else if (InputManager.Get(InputKeys::UP) && CurrentDirection != MovementDirection::DOWN)
+	else if (InputManager.Get(EInputKeys::UP) && CurrentDirection != MovementDirection::DOWN)
 		CurrentDirection = MovementDirection::UP;
 
 	//Execute movement at certain spped
@@ -104,7 +106,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime, Input& InputManager, Render
 		MovementCounter = 0.0f;
 	}
 
-	RenderGame(Render, TileSize, TileMap);
+	RenderGame(GetEngine()->Renderer, TileSize, TileMap);
 
 	return SceneIdentifier::GAME;
 }
@@ -155,7 +157,7 @@ void GameScene::ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]
 	CurrentBodyPartsCount = 1;
 }
 
-void GameScene::RenderGame(Renderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
+void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
 {
 
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)

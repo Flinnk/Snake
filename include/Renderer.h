@@ -1,6 +1,6 @@
 #pragma once
 #include <Windows.h>
-#include <SnakeMath.h>
+#include <MathExt.h>
 #include <d3d11.h>
 
 #define D3D_SAFE_RELEASE(x) \
@@ -16,28 +16,28 @@ if(x)\
 #define NUM_VERTICES (NUM_RECT_BATCH * VERTEX_PER_RECT)
 #define NUM_INDICES (NUM_RECT_BATCH * INDICES_PER_RECT)
 
-struct VertexData
+struct SVertexData
 {
 	Vector3 Position;
 	Vector4 Color;
 	Vector3 UV;
 };
 
-struct ConstantBufferData
+struct SConstantBufferData
 {
 	Matrix4x4 MVP;
 };
 
-class Texture
+class CTexture
 {
-	friend class Renderer;
+	friend class CRenderer;
 public:
-	Texture() : RawTexture(nullptr), TextureView(nullptr)
+	CTexture() : RawTexture(nullptr), TextureView(nullptr)
 	{
 
 	}
 
-	Texture(ID3D11Texture2D* TexturePointer, ID3D11ShaderResourceView* ResourcePointer) : RawTexture(TexturePointer), TextureView(ResourcePointer)
+	CTexture(ID3D11Texture2D* TexturePointer, ID3D11ShaderResourceView* ResourcePointer) : RawTexture(TexturePointer), TextureView(ResourcePointer)
 	{
 	}
 
@@ -53,18 +53,18 @@ private:
 	ID3D11ShaderResourceView* TextureView = nullptr;
 };
 
-class Renderer
+class CRenderer
 {
 public:
-	Renderer() : Width(0), Height(0) {}
+	CRenderer() : Width(0), Height(0) {}
 	bool Initialize(HWND WindowHandle, int Width, int Height);
 
 	void Clear(const Vector4& Color);
 	void Begin();
 
-	Texture LoadTextureFromFile(const char* Path);
-	Texture LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels);
-	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* SpriteTexture = nullptr, Vector3 UVPos = Vector3(0, 0, 0), Vector3 UVSize = Vector3(1, 1, 0));
+	CTexture LoadTextureFromFile(const char* Path);
+	CTexture LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels);
+	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* SpriteTexture = nullptr, Vector3 UVPos = Vector3(0, 0, 0), Vector3 UVSize = Vector3(1, 1, 0));
 	void End();
 
 	void Present();
@@ -85,10 +85,10 @@ private:
 	ID3D11Buffer* ConstantBuffer = nullptr;
 	ID3D11Buffer* VertexBuffer = nullptr;
 	ID3D11Buffer* IndexBuffer = nullptr;
-	VertexData* VertexBufferPointer = nullptr;
+	SVertexData* VertexBufferPointer = nullptr;
 	ID3D11SamplerState* SamplerState = nullptr;
 
-	Texture SpriteTexture;
-	Texture* LastDrawnTexture = nullptr;
+	CTexture SpriteTexture;
+	CTexture* LastDrawnTexture = nullptr;
 	unsigned int IndicesToDraw = 0;
 };

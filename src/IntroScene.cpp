@@ -5,9 +5,9 @@
 #include <string>
 
 stbtt_bakedchar cdata[255]; // ASCII 32..126 is 95 glyphs
-void IntroScene::Enter(Renderer& Render)
+void IntroScene::Enter()
 {
-
+	
 	long size;
 	unsigned char* fontBuffer;
 	FILE* fontFile = fopen("Boxy-Bold.ttf", "rb");
@@ -24,20 +24,20 @@ void IntroScene::Enter(Renderer& Render)
 
 	int result = stbtt_BakeFontBitmap(fontBuffer, 0, 48, temp_bitmap, 512, 512, 0, 255, cdata); // no guarantee this fits!
 
-	TestSprite = Render.LoadTextureFromMemory(temp_bitmap, 512, 512, 1);
+	TestSprite = GetEngine()->Renderer.LoadTextureFromMemory(temp_bitmap, 512, 512, 1);
 	free(fontBuffer);
 
 	//TestSprite = Render.LoadTextureFromFile("tumblr_nzbtsemq3e1syry3co5_540.png");
 }
 
-void IntroScene::Exit(Renderer& Render)
+void IntroScene::Exit()
 {
 	TestSprite.Release();
 }
 
-SceneIdentifier IntroScene::Update(float ElapsedTime, Input& InputManager, Renderer& Render)
+SceneIdentifier IntroScene::Update(float ElapsedTime)
 {
-	if (InputManager.GetDown(InputKeys::START))
+	if (GetEngine()->Input.GetDown(EInputKeys::START))
 		return SceneIdentifier::GAME;
 
 	//Render.DrawSprite(Vector3(0, 0, 0), Vector3(800, 600, 0), Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite);
@@ -52,7 +52,7 @@ SceneIdentifier IntroScene::Update(float ElapsedTime, Input& InputManager, Rende
 			stbtt_bakedchar CharInfo = cdata[Character];
 			Vector3 UVPos(CharInfo.x0 / 512.0, CharInfo.y0 / 512.0, 0);
 			Vector3 UVSize(CharInfo.x1 / 512.0, CharInfo.y1 / 512.0, 0);
-			Render.DrawSprite(Vector3(0 + xOffset, 0, 0), Size, Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite, UVPos, UVSize);
+			GetEngine()->Renderer.DrawSprite(Vector3(0 + xOffset, 0, 0), Size, Vector3(0, 0, 0), Vector4(1, 1, 1, 1), &TestSprite, UVPos, UVSize);
 			xOffset += Size.X;
 		}
 		else

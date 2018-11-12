@@ -1,4 +1,4 @@
-#include <SnakeRenderer.h>
+#include <Renderer.h>
 #include <d3dcompiler.h>
 #include <stb/stb_image.h>
 
@@ -74,7 +74,7 @@ void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
 }
 
 
-bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
+bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 {
 	Width = InWidth;
 	Height = InHeight;
@@ -235,7 +235,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 
 
 	D3D11_BUFFER_DESC ConstantBufferDesc = {  };
-	ConstantBufferDesc.ByteWidth = sizeof(ConstantBufferData);
+	ConstantBufferDesc.ByteWidth = sizeof(SConstantBufferData);
 	ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -249,7 +249,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	}
 
 	D3D11_BUFFER_DESC VertexBufferDesc = {  };
-	VertexBufferDesc.ByteWidth = sizeof(VertexData) * NUM_VERTICES;
+	VertexBufferDesc.ByteWidth = sizeof(SVertexData) * NUM_VERTICES;
 	VertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	VertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -322,7 +322,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	DeviceContext->PSSetShader(PixelShader, 0, 0);
 	DeviceContext->IASetInputLayout(InputLayout);
 
-	UINT Stride = sizeof(VertexData);
+	UINT Stride = sizeof(SVertexData);
 	UINT Offset = 0;
 	DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
 	DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -331,7 +331,7 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 
 	D3D11_MAPPED_SUBRESOURCE ConstantBufferSubresource;
 	DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferSubresource);
-	ConstantBufferData* Data = (ConstantBufferData*)ConstantBufferSubresource.pData;
+	SConstantBufferData* Data = (SConstantBufferData*)ConstantBufferSubresource.pData;
 	Data->MVP = Matrix4x4::Identity();
 	Data->MVP *= Matrix4x4::Ortographic(0, Width, 0, Height, 0, 100);//Intercambiar ViewTop/ViewBottom hace que pasemos el cordenadas de con origen arriba izquierda a abajo izquierda
 
@@ -400,39 +400,42 @@ bool Renderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		return false;
 	}
 
-	SpriteTexture = Texture(STexture, TextureView);
+	SpriteTexture = CTexture(STexture, TextureView);
 	DeviceContext->PSSetSamplers(0, 1, &SamplerState);
 
 	return true;
 }
 
-void Renderer::Clear(const Vector4& Color)
+void CRenderer::Clear(const Vector4& Color)
 {
 	DeviceContext->ClearRenderTargetView(RenderTargetView, Color.Components);
 	DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
 
-void Renderer::Present()
+void CRenderer::Present()
 {
 	SwapChain->Present(0, 0);
 }
 
-void Renderer::Begin()
+void CRenderer::Begin()
 {
 	IndicesToDraw = 0;
 	D3D11_MAPPED_SUBRESOURCE BufferSubresource;
 	DeviceContext->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &BufferSubresource);
-	VertexBufferPointer = (VertexData*)BufferSubresource.pData;
+	VertexBufferPointer = (SVertexData*)BufferSubresource.pData;
+	LastDrawnTexture = nullptr;
 }
 
-void Renderer::End()
+void CRenderer::End()
 {
 	DeviceContext->Unmap(VertexBuffer, 0);
-	DeviceContext->PSSetShaderResources(0, 1, &LastDrawnTexture->TextureView);
-	DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
+	if (LastDrawnTexture)
+		DeviceContext->PSSetShaderResources(0, 1, &LastDrawnTexture->TextureView);
+	if (IndicesToDraw > 0)
+		DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
 }
 
-void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, Texture* Texture, Vector3 UVPos, Vector3 UVSize)
+void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* Texture, Vector3 UVPos, Vector3 UVSize)
 {
 	if (VertexBufferPointer == nullptr)
 		return;
@@ -485,7 +488,7 @@ void Renderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector
 
 }
 
-Texture Renderer::LoadTextureFromFile(const char* Path)
+CTexture CRenderer::LoadTextureFromFile(const char* Path)
 {
 	int Width = 0;
 	int Height = 0;
@@ -532,10 +535,10 @@ Texture Renderer::LoadTextureFromFile(const char* Path)
 
 	stbi_image_free(ImageData);
 
-	return Texture(STexture, TextureView);
+	return CTexture(STexture, TextureView);
 }
 
-Texture Renderer::LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels)
+CTexture CRenderer::LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels)
 {
 	// Create texture
 	D3D11_TEXTURE2D_DESC desc;
@@ -574,10 +577,10 @@ Texture Renderer::LoadTextureFromMemory(const unsigned char* Data, int TextureWi
 		}
 	}
 
-	return Texture(STexture, TextureView);
+	return CTexture(STexture, TextureView);
 }
 
-void Renderer::Release()
+void CRenderer::Release()
 {
 	D3D_SAFE_RELEASE(SamplerState);
 	SpriteTexture.Release();

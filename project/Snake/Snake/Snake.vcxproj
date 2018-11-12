@@ -144,21 +144,22 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\GameScene.cpp" />
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
-    <ClCompile Include="..\..\..\src\SnakeAudio.cpp" />
-    <ClCompile Include="..\..\..\src\SnakeRenderer.cpp" />
+    <ClCompile Include="..\..\..\src\Audio.cpp" />
+    <ClCompile Include="..\..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
     <ClCompile Include="..\..\..\src\stb_truetype.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Constants.h" />
+    <ClInclude Include="..\..\..\include\Engine.h" />
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
     <ClInclude Include="..\..\..\include\Scene.h" />
-    <ClInclude Include="..\..\..\include\SnakeAudio.h" />
-    <ClInclude Include="..\..\..\include\SnakeInput.h" />
-    <ClInclude Include="..\..\..\include\SnakeMath.h" />
-    <ClInclude Include="..\..\..\include\SnakeRenderer.h" />
+    <ClInclude Include="..\..\..\include\Audio.h" />
+    <ClInclude Include="..\..\..\include\Input.h" />
+    <ClInclude Include="..\..\..\include\MathExt.h" />
+    <ClInclude Include="..\..\..\include\Renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

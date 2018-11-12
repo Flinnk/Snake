@@ -1,6 +1,6 @@
-#include <SnakeAudio.h>
+#include <Audio.h>
 
-HRESULT AudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
+HRESULT CAudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
 {
 	HRESULT hr = S_OK;
 	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN))
@@ -56,7 +56,7 @@ HRESULT AudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, 
 }
 
 
-HRESULT AudioManager::ReadChunkData(HANDLE File, void * buffer, DWORD buffersize, DWORD bufferoffset)
+HRESULT CAudioManager::ReadChunkData(HANDLE File, void * buffer, DWORD buffersize, DWORD bufferoffset)
 {
 	HRESULT hr = S_OK;
 	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, bufferoffset, NULL, FILE_BEGIN))
@@ -67,7 +67,7 @@ HRESULT AudioManager::ReadChunkData(HANDLE File, void * buffer, DWORD buffersize
 	return hr;
 }
 
-bool AudioManager::LoadAudio(const char* FilePath, AudioClip* Clip, bool Loop)
+bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 {
 	HANDLE File = CreateFile(
 		FilePath,
@@ -120,7 +120,7 @@ bool AudioManager::LoadAudio(const char* FilePath, AudioClip* Clip, bool Loop)
 	return true;
 }
 
-bool AudioManager::Initialize()
+bool CAudioManager::Initialize()
 {
 	HRESULT Result = XAudio2Create(&XAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
 	if (FAILED(Result))
@@ -132,42 +132,42 @@ bool AudioManager::Initialize()
 	return true;
 }
 
-void AudioManager::Release()
+void CAudioManager::Release()
 {
 	XAudio2->Release();
 }
 
-void AudioManager::StopEngine()
+void CAudioManager::StopEngine()
 {
 	XAudio2->StopEngine();
 }
 
-void AudioManager::StartEngine()
+void CAudioManager::StartEngine()
 {
 	XAudio2->StartEngine();
 }
 
-void AudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * DataBufferParameter)
+void CAudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * DataBufferParameter)
 {
 	SourceVoice = SourceVoiceParameter;
 	DataBuffer = DataBufferParameter;
 }
 
-void AudioClip::Play()
+void CAudioClip::Play()
 {
 	SourceVoice->Start(0, 0);
 }
 
-void AudioClip::Stop()
+void CAudioClip::Stop()
 {
 	SourceVoice->Stop();
 }
-void AudioClip::SetVolume(float Volume)
+void CAudioClip::SetVolume(float Volume)
 {
 	SourceVoice->SetVolume(Volume);
 }
 
-void AudioClip::Release()
+void CAudioClip::Release()
 {
 	if (SourceVoice)
 	{
