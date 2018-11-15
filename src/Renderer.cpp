@@ -1,10 +1,10 @@
+#pragma warning(disable:4996)
+
 #include <Renderer.h>
 #include <d3dcompiler.h>
 #include <stb/stb_image.h>
 
-
-
-static const char ShaderCode[] = "\
+static const char SpriteShaderCode[] = "\
 	cbuffer BufferPerBatch  \
 	{	float4x4 Projection;\
 	}\
@@ -39,6 +39,45 @@ PixelInput VS(VertexInput Input)\
 float4 PS(PixelInput Input) : SV_TARGET\
 {\
 	return shaderTexture.Sample(sampleType,Input.UV)*Input.Color;\
+}\
+";
+
+static const char TextShaderCode[] = "\
+	cbuffer BufferPerBatch  \
+	{	float4x4 Projection;\
+	}\
+\
+	struct VertexInput\
+{\
+	float4 Position : POSITION;\
+	float4 Color : COLOR;\
+	float2 UV: TEXCOORD0;\
+};\
+\
+struct PixelInput\
+{\
+	float4 Position : SV_POSITION;\
+	float4 Color : COLOR;\
+	float2 UV: TEXCOORD0;\
+};\
+\
+PixelInput VS(VertexInput Input)\
+{\
+	PixelInput Output;\
+	Input.Position.w = 1;\
+	Output.Color = Input.Color;\
+	Output.Position = mul(Projection,Input.Position);\
+	Output.UV = Input.UV;\
+	return Output;\
+}\
+\
+\ Texture2D shaderTexture;\
+\ SamplerState sampleType;\
+\
+float4 PS(PixelInput Input) : SV_TARGET\
+{\
+	float color =  shaderTexture.Sample(sampleType,Input.UV).r;\
+	return float4(color,color,color,color)*Input.Color;\
 }\
 ";
 
@@ -172,27 +211,27 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	ID3D10Blob* PixelShaderBlob = nullptr;
 	ID3D10Blob* ShaderErrorBlob = nullptr;
 
-	Result = D3DCompile(ShaderCode, sizeof(ShaderCode), NULL, NULL, NULL, "VS", "vs_5_0", D3DCOMPILE_DEBUG, 0, &VertexShaderBlob, &ShaderErrorBlob);
+	Result = D3DCompile(SpriteShaderCode, sizeof(SpriteShaderCode), NULL, NULL, NULL, "VS", "vs_5_0", D3DCOMPILE_DEBUG, 0, &VertexShaderBlob, &ShaderErrorBlob);
 	if (FAILED(Result))
 	{
 		OutputShaderErrorMessage(ShaderErrorBlob);
 		return false;
 	}
 
-	D3DCompile(ShaderCode, sizeof(ShaderCode), NULL, NULL, NULL, "PS", "ps_5_0", D3DCOMPILE_DEBUG, 0, &PixelShaderBlob, &ShaderErrorBlob);
+	D3DCompile(SpriteShaderCode, sizeof(SpriteShaderCode), NULL, NULL, NULL, "PS", "ps_5_0", D3DCOMPILE_DEBUG, 0, &PixelShaderBlob, &ShaderErrorBlob);
 	if (FAILED(Result))
 	{
 		OutputShaderErrorMessage(ShaderErrorBlob);
 		return false;
 	}
 
-	Result = Device->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), 0, &VertexShader);
+	Result = Device->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), 0, &SpriteVertexShader);
 	if (FAILED(Result))
 	{
 		return false;
 	}
 
-	Result = Device->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), 0, &PixelShader);
+	Result = Device->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), 0, &SpritePixelShader);
 	if (FAILED(Result))
 	{
 		return false;
@@ -233,6 +272,40 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	D3D_SAFE_RELEASE(PixelShaderBlob);
 	D3D_SAFE_RELEASE(ShaderErrorBlob);
 
+	VertexShaderBlob = nullptr;
+	PixelShaderBlob = nullptr;
+	ShaderErrorBlob = nullptr;
+
+	Result = D3DCompile(TextShaderCode, sizeof(TextShaderCode), NULL, NULL, NULL, "VS", "vs_5_0", D3DCOMPILE_DEBUG, 0, &VertexShaderBlob, &ShaderErrorBlob);
+	if (FAILED(Result))
+	{
+		OutputShaderErrorMessage(ShaderErrorBlob);
+		return false;
+	}
+
+	D3DCompile(TextShaderCode, sizeof(TextShaderCode), NULL, NULL, NULL, "PS", "ps_5_0", D3DCOMPILE_DEBUG, 0, &PixelShaderBlob, &ShaderErrorBlob);
+	if (FAILED(Result))
+	{
+		OutputShaderErrorMessage(ShaderErrorBlob);
+		return false;
+	}
+
+	Result = Device->CreateVertexShader(VertexShaderBlob->GetBufferPointer(), VertexShaderBlob->GetBufferSize(), 0, &TextVertexShader);
+	if (FAILED(Result))
+	{
+		return false;
+	}
+
+	Result = Device->CreatePixelShader(PixelShaderBlob->GetBufferPointer(), PixelShaderBlob->GetBufferSize(), 0, &TextPixelShader);
+	if (FAILED(Result))
+	{
+		return false;
+	}
+
+	D3D_SAFE_RELEASE(VertexShaderBlob);
+	D3D_SAFE_RELEASE(PixelShaderBlob);
+	D3D_SAFE_RELEASE(ShaderErrorBlob);
+
 
 	D3D11_BUFFER_DESC ConstantBufferDesc = {  };
 	ConstantBufferDesc.ByteWidth = sizeof(SConstantBufferData);
@@ -255,21 +328,6 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	VertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	VertexBufferDesc.MiscFlags = 0;
 	VertexBufferDesc.StructureByteStride = 0;
-
-	/*Vector4 RectangleColor = Vector4(1, 0, 0, 1);
-
-	VertexData VBD[4];
-	VBD[0].Position = Vector3(0, 1, 0);
-	VBD[0].Color = RectangleColor;
-
-	VBD[1].Position = Vector3(1, 0, 0);
-	VBD[1].Color = RectangleColor;
-
-	VBD[2].Position = Vector3(0, 0, 0);
-	VBD[2].Color = RectangleColor;
-
-	VBD[3].Position = Vector3(1, 1, 0);
-	VBD[3].Color = RectangleColor;*/
 
 	Result = Device->CreateBuffer(&VertexBufferDesc, 0, &VertexBuffer);
 	if (FAILED(Result))
@@ -298,13 +356,6 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		LastIndex += 4;
 	}
 
-	/*IBD[0] = 0;
-	IBD[1] = 1;
-	IBD[2] = 2;
-	IBD[3] = 3;
-	IBD[4] = 1;
-	IBD[5] = 0;*/
-
 	D3D11_SUBRESOURCE_DATA IndexBufferData;
 	IndexBufferData.SysMemPitch = 0;
 	IndexBufferData.SysMemSlicePitch = 0;
@@ -318,8 +369,8 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 
 	//Set drawing state
 
-	DeviceContext->VSSetShader(VertexShader, 0, 0);
-	DeviceContext->PSSetShader(PixelShader, 0, 0);
+	DeviceContext->VSSetShader(SpriteVertexShader, 0, 0);
+	DeviceContext->PSSetShader(SpritePixelShader, 0, 0);
 	DeviceContext->IASetInputLayout(InputLayout);
 
 	UINT Stride = sizeof(SVertexData);
@@ -400,9 +451,26 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 		return false;
 	}
 
-	SpriteTexture = CTexture(STexture, TextureView);
+	SpriteTexture = CTexture(STexture, TextureView, 1, 1);
 	DeviceContext->PSSetSamplers(0, 1, &SamplerState);
 
+	D3D11_BLEND_DESC BlendDesc = {};
+	BlendDesc.RenderTarget[0].BlendEnable = true;
+	BlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	BlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	BlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	BlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	BlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	Result = Device->CreateBlendState(&BlendDesc, &BlendState);
+	if (FAILED(Result))
+	{
+		return false;
+	}
+
+	DeviceContext->OMSetBlendState(BlendState, 0, 0xffffffff);
 	return true;
 }
 
@@ -424,6 +492,7 @@ void CRenderer::Begin()
 	DeviceContext->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &BufferSubresource);
 	VertexBufferPointer = (SVertexData*)BufferSubresource.pData;
 	LastDrawnTexture = nullptr;
+	CurrentRenderMode = ERenderMode::NONE;
 }
 
 void CRenderer::End()
@@ -435,7 +504,9 @@ void CRenderer::End()
 		DeviceContext->DrawIndexed(IndicesToDraw, 0, 0);
 }
 
-void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* Texture, Vector3 UVPos, Vector3 UVSize)
+
+
+void CRenderer::InternalDrawSprite(ERenderMode RenderMode, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* Texture, Vector3 UVPos, Vector3 UVSize)
 {
 	if (VertexBufferPointer == nullptr)
 		return;
@@ -443,13 +514,31 @@ void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vecto
 	if (Texture == nullptr)
 		Texture = &SpriteTexture;
 
-	if (LastDrawnTexture && LastDrawnTexture != Texture)
+	if (CurrentRenderMode == ERenderMode::NONE)
+		CurrentRenderMode = RenderMode;
+
+	bool DifferentRenderMode = CurrentRenderMode != RenderMode;
+	if ((LastDrawnTexture && LastDrawnTexture != Texture) || DifferentRenderMode)
 	{
 		End();
 		Begin();
 	}
 
 	LastDrawnTexture = Texture;
+	CurrentRenderMode = RenderMode;
+	if (DifferentRenderMode)
+	{
+		if (CurrentRenderMode == ERenderMode::SPRITE)
+		{
+			DeviceContext->VSSetShader(SpriteVertexShader, 0, 0);
+			DeviceContext->PSSetShader(SpritePixelShader, 0, 0);
+		}
+		else
+		{
+			DeviceContext->VSSetShader(TextVertexShader, 0, 0);
+			DeviceContext->PSSetShader(TextPixelShader, 0, 0);
+		}
+	}
 
 	//Vertex1
 	VertexBufferPointer->Position = Vector3(Position.X + Offset.X, Position.Y + Size.Y - Offset.Y, Position.Z);
@@ -486,6 +575,33 @@ void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vecto
 		Begin();
 	}
 
+}
+
+
+void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* Texture, Vector3 UVPos, Vector3 UVSize)
+{
+	InternalDrawSprite(ERenderMode::SPRITE, Position, Size, Offset, Color, Texture, UVPos, UVSize);
+}
+
+void CRenderer::DrawTextExt(CFont Font, const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
+{
+	int xOffset = 0;
+	for (int i = 0; i < strlen(Text); ++i)
+	{
+		const char Character = Text[i];
+		if (Character != ' ')
+		{
+			stbtt_bakedchar CharInfo = Font.cdata[Character];
+			Vector3 UVPos(CharInfo.x0 / (float)Font.Texture->GetWidth(), CharInfo.y0 / (float)Font.Texture->GetHeight(), 0);
+			Vector3 UVSize(CharInfo.x1 / (float)Font.Texture->GetWidth(), CharInfo.y1 / (float)Font.Texture->GetHeight(), 0);
+			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, Font.Texture, UVPos, UVSize);
+			xOffset += Size.X;
+		}
+		else
+		{
+			xOffset += Size.X;
+		}
+	}
 }
 
 CTexture CRenderer::LoadTextureFromFile(const char* Path)
@@ -535,10 +651,10 @@ CTexture CRenderer::LoadTextureFromFile(const char* Path)
 
 	stbi_image_free(ImageData);
 
-	return CTexture(STexture, TextureView);
+	return CTexture(STexture, TextureView, Width, Height);
 }
 
-CTexture CRenderer::LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels)
+CTexture* CRenderer::LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels)
 {
 	// Create texture
 	D3D11_TEXTURE2D_DESC desc;
@@ -577,19 +693,49 @@ CTexture CRenderer::LoadTextureFromMemory(const unsigned char* Data, int Texture
 		}
 	}
 
-	return CTexture(STexture, TextureView);
+	return new CTexture(STexture, TextureView, TextureWidth, TextureHeight);
+}
+
+CFont CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight)
+{
+	CFont Font;
+
+	long size;
+	unsigned char* fontBuffer;
+	FILE* fontFile = fopen(Path, "rb");
+	fseek(fontFile, 0, SEEK_END);
+	size = ftell(fontFile); /* how long is the file ? */
+	fseek(fontFile, 0, SEEK_SET); /* reset */
+
+	fontBuffer = (unsigned char*)malloc(size);
+
+	fread(fontBuffer, size, 1, fontFile);
+	fclose(fontFile);
+
+	unsigned char* temp_bitmap = new unsigned char[BitFontWidth * BitFontHeight];
+
+	int result = stbtt_BakeFontBitmap(fontBuffer, 0, Size, temp_bitmap, BitFontWidth, BitFontHeight, 0, 255, Font.cdata);
+
+	CTexture* BitmapFont = LoadTextureFromMemory(temp_bitmap, BitFontWidth, BitFontHeight, 1);
+	free(fontBuffer);
+	delete(temp_bitmap);
+	Font.Texture = BitmapFont;
+	return Font;
 }
 
 void CRenderer::Release()
 {
+	D3D_SAFE_RELEASE(BlendState);
 	D3D_SAFE_RELEASE(SamplerState);
 	SpriteTexture.Release();
 	D3D_SAFE_RELEASE(VertexBuffer);
 	D3D_SAFE_RELEASE(IndexBuffer);
 	D3D_SAFE_RELEASE(ConstantBuffer);
 	D3D_SAFE_RELEASE(InputLayout);
-	D3D_SAFE_RELEASE(VertexShader);
-	D3D_SAFE_RELEASE(PixelShader);
+	D3D_SAFE_RELEASE(TextVertexShader);
+	D3D_SAFE_RELEASE(TextPixelShader);
+	D3D_SAFE_RELEASE(SpriteVertexShader);
+	D3D_SAFE_RELEASE(SpritePixelShader);
 	D3D_SAFE_RELEASE(DepthStencilView);
 	D3D_SAFE_RELEASE(DepthStencilTexture);
 	D3D_SAFE_RELEASE(RenderTargetView);

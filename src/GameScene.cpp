@@ -1,14 +1,19 @@
-#include <GameScene.h>
+#pragma warning(disable:4996)
 
+#include <GameScene.h>
+#include <cstdio>
+#include <varargs.h>
 void GameScene::Enter()
 {
+	Font = GetEngine()->Renderer.LoadFont("Boxy-Bold.ttf", 160, 2048, 2048);
+
 	CurrentDirection = MovementDirection::NONE;
 
 	CurrentBodyPartsCount = 1;
 
 	Score = 0;
 
-	TileSize = Vector3(WINDOW_WIDTH / TILE_MAP_COLLUMNS, WINDOW_HEIGHT / TILE_MAP_ROWS, 0);
+	TileSize = Vector3(WINDOW_WIDTH / TILE_MAP_COLLUMNS, GAME_HEIGHT / TILE_MAP_ROWS, 0);
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
 	{
 		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
@@ -28,7 +33,7 @@ void GameScene::Enter()
 
 void GameScene::Exit()
 {
-
+	Font.Release();
 }
 
 SceneIdentifier GameScene::Update(float ElapsedTime)
@@ -165,7 +170,7 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 		for (int Row = 0; Row < TILE_MAP_ROWS; ++Row)
 		{
 			TileMapValue TileValue = TileMap[Column][Row];
-			Vector3 TilePosition(Column*TileSize.X, WINDOW_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
+			Vector3 TilePosition(Column*TileSize.X, GAME_HEIGHT - TileSize.Y - Row * TileSize.Y, 0);
 			Vector4 Color;
 			Vector3 Offset(0, 0, 0);
 			switch (TileValue)
@@ -195,6 +200,12 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 		}
 	}
 
+	Renderer.DrawSprite(Vector3(0, GAME_HEIGHT, 0), Vector3(WINDOW_WIDTH, 50, 0), Vector3(0, 0, 0), Vector4(0.25, 0.25, 0.25, 1));
+
+	char Buffer[256];
+	sprintf(Buffer, "Score:%d", Score);
+	int t = strlen(Buffer);
+	Renderer.DrawTextExt(Font, Buffer, Vector3(WINDOW_WIDTH - 40 * t, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
 
 }
 
