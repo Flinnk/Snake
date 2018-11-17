@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\..\src\Audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Scene.h">
@@ -65,7 +68,7 @@
     <ClInclude Include="..\..\..\include\MathExt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\Game.h">
+    <ClInclude Include="..\..\..\include\ResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -583,7 +583,7 @@ void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vecto
 	InternalDrawSprite(ERenderMode::SPRITE, Position, Size, Offset, Color, Texture, UVPos, UVSize);
 }
 
-void CRenderer::DrawTextExt(CFont Font, const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
+void CRenderer::DrawTextExt(CFont* Font, const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
 {
 	int xOffset = 0;
 	for (int i = 0; i < strlen(Text); ++i)
@@ -591,10 +591,10 @@ void CRenderer::DrawTextExt(CFont Font, const char* Text, Vector3 Position, Vect
 		const char Character = Text[i];
 		if (Character != ' ')
 		{
-			stbtt_bakedchar CharInfo = Font.cdata[Character];
-			Vector3 UVPos(CharInfo.x0 / (float)Font.Texture->GetWidth(), CharInfo.y0 / (float)Font.Texture->GetHeight(), 0);
-			Vector3 UVSize(CharInfo.x1 / (float)Font.Texture->GetWidth(), CharInfo.y1 / (float)Font.Texture->GetHeight(), 0);
-			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, Font.Texture, UVPos, UVSize);
+			stbtt_bakedchar CharInfo = Font->cdata[Character];
+			Vector3 UVPos(CharInfo.x0 / (float)Font->Texture->GetWidth(), CharInfo.y0 / (float)Font->Texture->GetHeight(), 0);
+			Vector3 UVSize(CharInfo.x1 / (float)Font->Texture->GetWidth(), CharInfo.y1 / (float)Font->Texture->GetHeight(), 0);
+			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, Font->Texture, UVPos, UVSize);
 			xOffset += Size.X;
 		}
 		else

@@ -2,16 +2,14 @@
 
 #include <GameScene.h>
 #include <cstdio>
-#include <varargs.h>
+
 void GameScene::Enter()
 {
-	Font = GetEngine()->Renderer.LoadFont("Boxy-Bold.ttf", 160, 2048, 2048);
+	Font = GetEngine()->ResourceManager.RetrieveFont("Boxy-Bold.ttf");
 
 	CurrentDirection = MovementDirection::NONE;
-
+	bGameOver = false;
 	CurrentBodyPartsCount = 1;
-
-	Score = 0;
 
 	TileSize = Vector3(WINDOW_WIDTH / TILE_MAP_COLLUMNS, GAME_HEIGHT / TILE_MAP_ROWS, 0);
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
@@ -25,22 +23,18 @@ void GameScene::Enter()
 		}
 	}
 
-	ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
-
-	MovementDelay = 0.1f;
-	MovementCounter = 0.0f;
+	ResetGame(true, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
 }
 
 void GameScene::Exit()
 {
-	Font.Release();
 }
 
 SceneIdentifier GameScene::Update(float ElapsedTime)
 {
 	CInput& InputManager = GetEngine()->Input;
 
-	if (InputManager.GetDown(EInputKeys::START))
+	if (bGameOver)
 		return SceneIdentifier::INTRO;
 
 	//Get Direction
@@ -80,7 +74,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 		TileMapValue TargetPositionValue = TileMap[TargetPosition.Column][TargetPosition.Row];
 		if (TargetPositionValue == TileMapValue::WALL)
 		{
-			ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
+			ResetGame(false, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
 		}
 		else if (TargetPositionValue == TileMapValue::APPLE)
 		{
@@ -93,8 +87,8 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 
 			MoveSnake(TileMap, SnakeBodyParts, CurrentBodyPartsCount, TargetPosition);
 
-			Score += 100;
-
+			Score = min(MAX_SCORE, Score + (APPLE_BASE_POINTS * CurrentBodyPartsCount));
+			MovementDelay = max(MIN_MOVEMENT_DELAY, (MovementDelay - MOVEMENT_STEP));
 			TileMapCoordinate ApplePosition = GetRandomPositionForApple(TileMap);
 			TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
 
@@ -105,7 +99,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 		}
 		else//BODY
 		{
-			ResetGame(TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
+			ResetGame(false, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
 		}
 
 		MovementCounter = 0.0f;
@@ -137,7 +131,7 @@ TileMapCoordinate GameScene::GetRandomPositionForApple(TileMapValue TileMap[TILE
 	return CandidateCoordinates[RandomValue];
 }
 
-void GameScene::ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount)
+void GameScene::ResetGame(bool NewGame, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount)
 {
 	for (int Column = 0; Column < TILE_MAP_COLLUMNS; ++Column)
 	{
@@ -160,6 +154,21 @@ void GameScene::ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]
 	TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
 
 	CurrentBodyPartsCount = 1;
+	MovementDelay = START_MOVEMENT_DELAY;
+	MovementCounter = 0.0f;
+
+	if (NewGame)
+	{
+		Score = 0;
+		Lives = LIVES;
+	}
+	else
+	{
+		if (Lives > 0)
+			Lives--;
+		else
+			bGameOver = true;
+	}
 }
 
 void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
@@ -206,6 +215,9 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 	sprintf(Buffer, "Score:%d", Score);
 	int t = strlen(Buffer);
 	Renderer.DrawTextExt(Font, Buffer, Vector3(WINDOW_WIDTH - 40 * t, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
+	sprintf(Buffer, "Lives:%d", Lives);
+	t = strlen(Buffer);
+	Renderer.DrawTextExt(Font, Buffer, Vector3(0, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
 
 }
 

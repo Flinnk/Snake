@@ -2,6 +2,7 @@
 #include <Audio.h>
 #include <Renderer.h>
 #include <Input.h>
+#include <ResourceManager.h>
 
 struct CEngine
 {
@@ -11,6 +12,7 @@ public:
 	CAudioManager AudioManager;
 	CRenderer Renderer;
 	CInput Input;
+	CResourceManager ResourceManager;
 };
 
 

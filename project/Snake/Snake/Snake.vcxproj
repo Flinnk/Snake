@@ -146,6 +146,7 @@
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
     <ClCompile Include="..\..\..\src\Audio.cpp" />
     <ClCompile Include="..\..\..\src\Renderer.cpp" />
+    <ClCompile Include="..\..\..\src\ResourceManager.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
     <ClCompile Include="..\..\..\src\stb_truetype.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="..\..\..\include\Engine.h" />
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
+    <ClInclude Include="..\..\..\include\ResourceManager.h" />
     <ClInclude Include="..\..\..\include\Scene.h" />
     <ClInclude Include="..\..\..\include\Audio.h" />
     <ClInclude Include="..\..\..\include\Input.h" />

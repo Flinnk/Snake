@@ -47,7 +47,7 @@ public:
 	void Exit();
 	SceneIdentifier Update(float ElapsedTime);
 private:
-	void ResetGame(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount);
+	void ResetGame(bool NewGame, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount);
 	TileMapCoordinate GetRandomPositionForApple(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]);
 	void RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]);
 	void MoveSnake(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount, TileMapCoordinate TargetPosition);
@@ -55,11 +55,13 @@ private:
 	float MovementDelay;
 	float MovementCounter;
 	unsigned int Score;
+	unsigned int Lives;
+	bool bGameOver;
 	MovementDirection CurrentDirection;
 	Vector3 Direction = Vector3(0, 0, 0);
 	TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL];
 	unsigned int CurrentBodyPartsCount;
 	Vector3 TileSize;
 	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
-	CFont Font;
+	CFont* Font;
 };

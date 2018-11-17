@@ -8,7 +8,6 @@ void IntroScene::Enter()
 
 void IntroScene::Exit()
 {
-	TestSprite.Release();
 }
 
 SceneIdentifier IntroScene::Update(float ElapsedTime)

@@ -152,6 +152,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	Clip.SetVolume(0.1);*/
 	//Clip.Play();
+	CFont* TextFont = Engine.ResourceManager.LoadAndRetrieveFont("Boxy-Bold.ttf", 160, 2048, 2048);
 
 	while (bRun)
 	{
@@ -207,6 +208,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 
 	}
+	Engine.ResourceManager.ReleaseFont("Boxy-Bold.ttf");
 
 	if (GameState.CurrentScene)
 	{

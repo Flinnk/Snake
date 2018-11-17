@@ -9,5 +9,4 @@ public:
 	void Exit();
 	SceneIdentifier Update(float ElapsedTime);
 private:
-	CTexture TestSprite;
 };
