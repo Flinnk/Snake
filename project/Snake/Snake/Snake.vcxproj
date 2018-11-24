@@ -162,6 +162,7 @@
     <ClInclude Include="..\..\..\include\Input.h" />
     <ClInclude Include="..\..\..\include\MathExt.h" />
     <ClInclude Include="..\..\..\include\Renderer.h" />
+    <ClInclude Include="..\..\..\include\Transition.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
