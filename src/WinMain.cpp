@@ -129,6 +129,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		return 0;
 	}
 
+	if (!Engine.AudioManager.Initialize())
+		ShowSystemErrorMessage("Failed to initialize AudioSystem");
+
+	CFont* TextFont = Engine.ResourceManager.LoadAndRetrieveFont("Boxy-Bold.ttf", 160, 2048, 2048);
+	
 	LARGE_INTEGER Frequency;
 	LARGE_INTEGER LastCounter;
 	QueryPerformanceFrequency(&Frequency);
@@ -143,18 +148,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
 
-	if (!Engine.AudioManager.Initialize())
-		ShowSystemErrorMessage("Failed to initialize AudioSystem");
-	/*CAudioClip Clip;
-
-	if (!Engine.AudioManager.LoadAudio("zone-of-danger.wav", &Clip, true))
-		ShowSystemErrorMessage("Failed to load audio");
-
-	Clip.SetVolume(0.1);*/
-	//Clip.Play();
-	CFont* TextFont = Engine.ResourceManager.LoadAndRetrieveFont("Boxy-Bold.ttf", 160, 2048, 2048);
-
-	while (bRun)
+	while (bRun && !Engine.bClose)
 	{
 		while (PeekMessage(&Message, GameState.WinVariables.WindowHandle, 0, 0, PM_REMOVE))
 		{
@@ -217,7 +211,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 
 	Engine.Renderer.Release();
-	//Clip.Release();
 	Engine.AudioManager.Release();
 	return 0;
 }

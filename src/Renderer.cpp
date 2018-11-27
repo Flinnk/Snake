@@ -515,7 +515,19 @@ void CRenderer::InternalDrawSprite(ERenderMode RenderMode, Vector3 Position, Vec
 		Texture = &SpriteTexture;
 
 	if (CurrentRenderMode == ERenderMode::NONE)
+	{
 		CurrentRenderMode = RenderMode;
+		if (CurrentRenderMode == ERenderMode::SPRITE)
+		{
+			DeviceContext->VSSetShader(SpriteVertexShader, 0, 0);
+			DeviceContext->PSSetShader(SpritePixelShader, 0, 0);
+		}
+		else
+		{
+			DeviceContext->VSSetShader(TextVertexShader, 0, 0);
+			DeviceContext->PSSetShader(TextPixelShader, 0, 0);
+		}
+	}
 
 	bool DifferentRenderMode = CurrentRenderMode != RenderMode;
 	if ((LastDrawnTexture && LastDrawnTexture != Texture) || DifferentRenderMode)

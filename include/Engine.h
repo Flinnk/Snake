@@ -9,6 +9,8 @@ struct CEngine
 public:
 	CEngine() {};
 	
+	bool bClose=false;
+
 	CAudioManager AudioManager;
 	CRenderer Renderer;
 	CInput Input;
