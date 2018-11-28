@@ -64,4 +64,7 @@ private:
 	Vector3 TileSize;
 	TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS];
 	CFont* Font;
+	CAudioClip* PickUpSound;
+	CAudioClip* DeathSound;
+	CAudioClip* Music;
 };

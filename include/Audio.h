@@ -12,7 +12,7 @@ class CAudioClip
 {
 public:
 	CAudioClip() :SourceVoice(nullptr), DataBuffer(nullptr) {}
-	void Initialize(IXAudio2SourceVoice* SourceVoice, BYTE * DataBuffer);
+	void Initialize(IXAudio2SourceVoice* SourceVoice, BYTE * DataBuffer, XAUDIO2_BUFFER ContentBuffer);
 	void Play();
 	void Stop();
 	void SetVolume(float Volume);
@@ -20,6 +20,7 @@ public:
 private:
 	IXAudio2SourceVoice* SourceVoice;
 	BYTE * DataBuffer;
+	XAUDIO2_BUFFER Buffer;
 };
 
 class CAudioManager

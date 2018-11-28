@@ -113,10 +113,10 @@ bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 	if (FAILED(hr = XAudio2->CreateSourceVoice(&SourceVoice, (WAVEFORMATEX*)&WAVEFORMAT)))
 		return false;
 
-	if (FAILED(hr = SourceVoice->SubmitSourceBuffer(&Buffer)))
-		return false;
+	/*if (FAILED(hr = SourceVoice->SubmitSourceBuffer(&Buffer)))
+		return false;*/
 
-	Clip->Initialize(SourceVoice, DataBuffer);
+	Clip->Initialize(SourceVoice, DataBuffer,Buffer);
 	return true;
 }
 
@@ -147,20 +147,23 @@ void CAudioManager::StartEngine()
 	XAudio2->StartEngine();
 }
 
-void CAudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * DataBufferParameter)
+void CAudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * DataBufferParameter, XAUDIO2_BUFFER ContentBuffer)
 {
 	SourceVoice = SourceVoiceParameter;
 	DataBuffer = DataBufferParameter;
+	Buffer = ContentBuffer;
 }
 
 void CAudioClip::Play()
 {
+	Stop();
+	SourceVoice->SubmitSourceBuffer(&Buffer);
 	SourceVoice->Start(0, 0);
 }
 
 void CAudioClip::Stop()
 {
-	SourceVoice->Stop();
+	SourceVoice->Stop(0,0);
 }
 void CAudioClip::SetVolume(float Volume)
 {

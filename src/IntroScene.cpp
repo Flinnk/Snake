@@ -7,15 +7,16 @@ void IntroScene::Enter()
 {
 	TitleAnimation.Initialize(WINDOW_HEIGHT, WINDOW_HEIGHT / 2 + 60 * 2, 1.0f);
 	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
-	CAudioClip* AudioClip = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("trance-menu.wav", true);
-	AudioClip->Play();
-	AudioClip->SetVolume(0.05f);
+	Music = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("trance-menu.wav", true);
+	Music->Play();
+	Music->SetVolume(0.05f);
 	Font = GetEngine()->ResourceManager.RetrieveFont("Boxy-Bold.ttf");
 	CurrentButton = IntroButton::PLAY;
 }
 
 void IntroScene::Exit()
 {
+	Music->Stop();
 	GetEngine()->ResourceManager.ReleaseAudioClip("trance-menu.wav");
 }
 
@@ -24,9 +25,9 @@ SceneIdentifier IntroScene::Update(float ElapsedTime)
 	CEngine* Engine = GetEngine();
 	float Position = 0.0f;
 	bool TitleAnimationFinished = TitleAnimation.Run(ElapsedTime, &Position);
-	if (GetEngine()->Input.GetDown(EInputKeys::START))
+	if (GetEngine()->Input.GetDown(EInputKeys::START) && TitleAnimationFinished)
 	{
-		if(CurrentButton == IntroButton::PLAY)
+		if (CurrentButton == IntroButton::PLAY)
 		{
 			return SceneIdentifier::GAME;
 		}

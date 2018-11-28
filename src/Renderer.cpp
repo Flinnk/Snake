@@ -482,7 +482,7 @@ void CRenderer::Clear(const Vector4& Color)
 
 void CRenderer::Present()
 {
-	SwapChain->Present(0, 0);
+	SwapChain->Present(1, 0);
 }
 
 void CRenderer::Begin()

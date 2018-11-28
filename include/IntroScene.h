@@ -22,4 +22,5 @@ private:
 	Transition<float> AlphaAnimation;
 	CFont* Font;
 	IntroButton CurrentButton;
+	CAudioClip* Music;
 };

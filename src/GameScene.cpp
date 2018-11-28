@@ -6,6 +6,15 @@
 void GameScene::Enter()
 {
 	Font = GetEngine()->ResourceManager.RetrieveFont("Boxy-Bold.ttf");
+	PickUpSound = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Pickup.wav", false);
+	PickUpSound->SetVolume(0.04f);
+
+	DeathSound = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Death.wav", false);
+	DeathSound->SetVolume(0.25f);
+
+	Music = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Game_Music.wav", true);
+	Music->SetVolume(0.25f);
+	Music->Play();
 
 	CurrentDirection = MovementDirection::NONE;
 	bGameOver = false;
@@ -28,6 +37,10 @@ void GameScene::Enter()
 
 void GameScene::Exit()
 {
+	GetEngine()->ResourceManager.ReleaseAudioClip("Pickup.wav");
+	GetEngine()->ResourceManager.ReleaseAudioClip("Death.wav");
+	GetEngine()->ResourceManager.ReleaseAudioClip("Game_Music.wav");
+
 }
 
 SceneIdentifier GameScene::Update(float ElapsedTime)
@@ -74,6 +87,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 		TileMapValue TargetPositionValue = TileMap[TargetPosition.Column][TargetPosition.Row];
 		if (TargetPositionValue == TileMapValue::WALL)
 		{
+			DeathSound->Play();
 			ResetGame(false, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
 		}
 		else if (TargetPositionValue == TileMapValue::APPLE)
@@ -91,6 +105,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 			MovementDelay = max(MIN_MOVEMENT_DELAY, (MovementDelay - MOVEMENT_STEP));
 			TileMapCoordinate ApplePosition = GetRandomPositionForApple(TileMap);
 			TileMap[ApplePosition.Column][ApplePosition.Row] = TileMapValue::APPLE;
+			PickUpSound->Play();
 
 		}
 		else if (TargetPositionValue == TileMapValue::FLOOR)
@@ -99,6 +114,7 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 		}
 		else//BODY
 		{
+			DeathSound->Play();
 			ResetGame(false, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
 		}
 
@@ -188,7 +204,7 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 				Color = Vector4(0.0, 0.0, 0.0, 1.0);
 				break;
 			case TileMapValue::WALL:
-				Color = Vector4(0.23, 0.15, 0.95, 1.0);
+				Color = Vector4(0.088f, 0.2f, 0.3f, 1.0);
 				break;
 			case TileMapValue::HEAD:
 				Color = Vector4(0, 1, 0, 1.0);
@@ -209,7 +225,7 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 		}
 	}
 
-	Renderer.DrawSprite(Vector3(0, GAME_HEIGHT, 0), Vector3(WINDOW_WIDTH, 50, 0), Vector3(0, 0, 0), Vector4(0.25, 0.25, 0.25, 1));
+	Renderer.DrawSprite(Vector3(0, GAME_HEIGHT, 0), Vector3(WINDOW_WIDTH, 50, 0), Vector3(0, 0, 0), Vector4(0, 0, 0, 1));
 
 	char Buffer[256];
 	sprintf(Buffer, "Score:%d", Score);
