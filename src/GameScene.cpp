@@ -2,9 +2,11 @@
 
 #include <GameScene.h>
 #include <cstdio>
+#include <math.h>
 
 void GameScene::Enter()
 {
+	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
 	Font = GetEngine()->ResourceManager.RetrieveFont("Boxy-Bold.ttf");
 	PickUpSound = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Pickup.wav", false);
 	PickUpSound->SetVolume(0.04f);
@@ -45,10 +47,15 @@ void GameScene::Exit()
 
 SceneIdentifier GameScene::Update(float ElapsedTime)
 {
-	CInput& InputManager = GetEngine()->Input;
+	if (!bGameOver)
+		return UpdateGame(ElapsedTime);
+	else
+		return UpdateGameOver(ElapsedTime);
+}
 
-	if (bGameOver)
-		return SceneIdentifier::INTRO;
+SceneIdentifier GameScene::UpdateGame(float ElapsedTime)
+{
+	CInput& InputManager = GetEngine()->Input;
 
 	//Get Direction
 	Vector3 NewPosition = Vector3();
@@ -126,6 +133,54 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 	return SceneIdentifier::GAME;
 }
 
+SceneIdentifier GameScene::UpdateGameOver(float ElapsedTime)
+{
+	CEngine* Engine = GetEngine();
+
+	if (GetEngine()->Input.GetDown(EInputKeys::START))
+	{
+		if (CurrentButton == GameButton::PLAY)
+		{
+			bGameOver = false;
+			Music->Play();
+			ResetGame(true, TileMap, CurrentDirection, SnakeBodyParts, CurrentBodyPartsCount);
+			return SceneIdentifier::GAME;
+		}
+		else
+		{
+			return SceneIdentifier::INTRO;
+		}
+	}
+
+	unsigned int ButtonValue = (unsigned int)CurrentButton;
+	if (Engine->Input.GetDown(EInputKeys::UP))
+	{
+		ButtonValue = min(ButtonValue - 1, (unsigned int)GameButton::PLAY);
+	}
+	else if (Engine->Input.GetDown(EInputKeys::DOWN))
+	{
+		ButtonValue = min(ButtonValue + 1, (unsigned int)GameButton::EXIT);
+	}
+	CurrentButton = (GameButton)ButtonValue;
+
+	float Alpha = 0.0f;
+	if (AlphaAnimation.Run(ElapsedTime, &Alpha))
+	{
+		AlphaAnimation.Reset();
+		AlphaAnimation.Inverse();
+	}
+	CRenderer& Renderer = Engine->Renderer;
+	RenderGame(Renderer, TileSize, TileMap);
+	Renderer.DrawSprite(Vector3((WINDOW_WIDTH / 2) - 300 / 2, (WINDOW_HEIGHT / 2) - 300 / 2, 0), Vector3(300, 300, 0), Vector3(0, 0, 0), Vector4(0.088f, 0.2f, 0.3f, 1.0));
+	Renderer.DrawSprite(Vector3((WINDOW_WIDTH / 2) - 250 / 2, (WINDOW_HEIGHT / 2) - 250 / 2, 0), Vector3(250, 250, 0), Vector3(0, 0, 0), Vector4(0, 0.0f, 0.0f, 1.0));
+
+	Renderer.DrawTextExt(Font, "GAME OVER", Vector3((WINDOW_WIDTH / 2) - (250 / 2) +25/2, (WINDOW_HEIGHT / 2) + 175 / 2, 0), Vector3(25, 25, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
+	Renderer.DrawTextExt(Font, "PLAY AGAIN", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -75 / 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::PLAY ? Alpha : 1));
+	Renderer.DrawTextExt(Font, "GO TO MENU", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -175/ 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::EXIT ? Alpha : 1));
+
+	return SceneIdentifier::GAME;
+}
+
 TileMapCoordinate GameScene::GetRandomPositionForApple(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS])
 {
 	TileMapCoordinate CandidateCoordinates[TILE_MAP_ROWS*TILE_MAP_COLLUMNS];
@@ -181,9 +236,15 @@ void GameScene::ResetGame(bool NewGame, TileMapValue TileMap[TILE_MAP_COLLUMNS][
 	else
 	{
 		if (Lives > 0)
+		{
 			Lives--;
+		}
 		else
+		{
+			Music->Stop();
 			bGameOver = true;
+			CurrentButton = GameButton::PLAY;
+		}
 	}
 }
 

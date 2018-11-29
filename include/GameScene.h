@@ -1,6 +1,13 @@
 #pragma once
 #include "Scene.h"
 #include "Constants.h"
+#include "Transition.h"
+
+enum class GameButton : unsigned int
+{
+	PLAY,
+	EXIT
+};
 
 enum class TileMapValue
 {
@@ -47,6 +54,10 @@ public:
 	void Exit();
 	SceneIdentifier Update(float ElapsedTime);
 private:
+
+	SceneIdentifier UpdateGame(float ElapsedTime);
+	SceneIdentifier UpdateGameOver(float ElapsedTime);
+
 	void ResetGame(bool NewGame, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS], MovementDirection& CurrentDirection, TileMapCoordinate SnakeBodyParts[SNAKE_BODY_TOTAL], unsigned int& CurrentBodyPartsCount);
 	TileMapCoordinate GetRandomPositionForApple(TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]);
 	void RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue TileMap[TILE_MAP_COLLUMNS][TILE_MAP_ROWS]);
@@ -67,4 +78,6 @@ private:
 	CAudioClip* PickUpSound;
 	CAudioClip* DeathSound;
 	CAudioClip* Music;
+	Transition<float> AlphaAnimation;
+	GameButton CurrentButton;
 };
