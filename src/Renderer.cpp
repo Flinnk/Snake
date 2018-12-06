@@ -3,6 +3,7 @@
 #include <Renderer.h>
 #include <d3dcompiler.h>
 #include <stb/stb_image.h>
+#include <File.h>
 
 static const char SpriteShaderCode[] = "\
 	cbuffer BufferPerBatch  \
@@ -711,18 +712,18 @@ CTexture* CRenderer::LoadTextureFromMemory(const unsigned char* Data, int Textur
 CFont CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight)
 {
 	CFont Font;
-
-	long size;
 	unsigned char* fontBuffer;
-	FILE* fontFile = fopen(Path, "rb");
-	fseek(fontFile, 0, SEEK_END);
-	size = ftell(fontFile); /* how long is the file ? */
-	fseek(fontFile, 0, SEEK_SET); /* reset */
 
+	//Add Error control
+	CFile FontFile;
+	CFile::Open(Path, EFileOpenMode::READ, FontFile);
+	int64_t size = 0;
+	uint64_t bytesRead = 0;
+
+	FontFile.GetFileSize(size);
 	fontBuffer = (unsigned char*)malloc(size);
-
-	fread(fontBuffer, size, 1, fontFile);
-	fclose(fontFile);
+	FontFile.ReadAll(fontBuffer, &bytesRead);
+	FontFile.Close();
 
 	unsigned char* temp_bitmap = new unsigned char[BitFontWidth * BitFontHeight];
 

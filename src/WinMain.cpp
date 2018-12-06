@@ -9,10 +9,11 @@
 #include <Core.h>
 #include <stb/stb_truetype.h>
 #include <Engine.h>
+#include <PlatformTime.h>
+#include <File.h>
 
 void UpdateInput(CInput* InInput)
 {
-
 	for (int i = 0; i < ENUM_TO_UINT(EInputDevices::TOTAL); ++i)
 	{
 		SInputDevice&  Device = InInput->Devices[i];
@@ -109,9 +110,10 @@ CEngine* GetEngine()
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	InitializeTime();
 	srand(time(NULL));
 	State GameState;
-	
+
 	unsigned int IntroSize = sizeof(IntroScene);
 	unsigned int GameSize = sizeof(GameScene);
 
@@ -133,11 +135,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		ShowSystemErrorMessage("Failed to initialize AudioSystem");
 
 	CFont* TextFont = Engine.ResourceManager.LoadAndRetrieveFont("Boxy-Bold.ttf", 160, 2048, 2048);
-	
-	LARGE_INTEGER Frequency;
-	LARGE_INTEGER LastCounter;
-	QueryPerformanceFrequency(&Frequency);
-	QueryPerformanceCounter(&LastCounter);
+
 	float ElapsedTime = 0;
 
 	MSG Message = {};
@@ -147,6 +145,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	GameState.CurrentScene->Enter();
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
+	float LastCounter = GetEllapsedMilliseconds();
 
 	while (bRun && !Engine.bClose)
 	{
@@ -189,11 +188,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			Engine.Renderer.End();
 			Engine.Renderer.Present();
 
-			LARGE_INTEGER CurrentCounter;
-			QueryPerformanceCounter(&CurrentCounter);
-
-			LONGLONG ElapsedCounter = CurrentCounter.QuadPart - LastCounter.QuadPart;
-			ElapsedTime = (float(ElapsedCounter) / float(Frequency.QuadPart));
+			float CurrentCounter = GetEllapsedMilliseconds();
+			ElapsedTime = (CurrentCounter - LastCounter);
 			LastCounter = CurrentCounter;
 
 			char Buffer[2048];
@@ -236,7 +232,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			GameState->HasFocus = true;
 			GetEngine()->AudioManager.StartEngine();
 		}
-		break;
+		return 0;
 	}
 	case WM_KILLFOCUS:
 	{
@@ -246,7 +242,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			GameState->HasFocus = false;
 			GetEngine()->AudioManager.StopEngine();
 		}
-		break;
+		return 0;
 	}
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);

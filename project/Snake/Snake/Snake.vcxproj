@@ -142,6 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\File.cpp" />
     <ClCompile Include="..\..\..\src\GameScene.cpp" />
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
     <ClCompile Include="..\..\..\src\Audio.cpp" />
@@ -149,11 +150,13 @@
     <ClCompile Include="..\..\..\src\ResourceManager.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
     <ClCompile Include="..\..\..\src\stb_truetype.cpp" />
+    <ClCompile Include="..\..\..\src\WinTime.cpp" />
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Constants.h" />
     <ClInclude Include="..\..\..\include\Engine.h" />
+    <ClInclude Include="..\..\..\include\File.h" />
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
     <ClInclude Include="..\..\..\include\ResourceManager.h" />
@@ -162,6 +165,7 @@
     <ClInclude Include="..\..\..\include\Input.h" />
     <ClInclude Include="..\..\..\include\MathExt.h" />
     <ClInclude Include="..\..\..\include\Renderer.h" />
+    <ClInclude Include="..\..\..\include\PlatformTime.h" />
     <ClInclude Include="..\..\..\include\Transition.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

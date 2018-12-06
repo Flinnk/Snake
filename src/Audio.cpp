@@ -1,9 +1,9 @@
 #include <Audio.h>
-
-HRESULT CAudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
+#include <File.h>
+HRESULT CAudioManager::FindChunk(CFile& File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
 {
 	HRESULT hr = S_OK;
-	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN))
+	if (!File.SetPointerPosition(EPointerPosition::BEGIN,0))
 		return HRESULT_FROM_WIN32(GetLastError());
 
 	DWORD dwChunkType;
@@ -15,11 +15,11 @@ HRESULT CAudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize,
 
 	while (hr == S_OK)
 	{
-		DWORD dwRead;
-		if (0 == ReadFile(File, &dwChunkType, sizeof(DWORD), &dwRead, NULL))
+		uint64_t dwRead;
+		if (!File.Read(&dwChunkType, sizeof(DWORD), &dwRead))
 			hr = HRESULT_FROM_WIN32(GetLastError());
 
-		if (0 == ReadFile(File, &dwChunkDataSize, sizeof(DWORD), &dwRead, NULL))
+		if (!File.Read(&dwChunkDataSize, sizeof(DWORD), &dwRead))
 			hr = HRESULT_FROM_WIN32(GetLastError());
 
 		switch (dwChunkType)
@@ -27,12 +27,12 @@ HRESULT CAudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize,
 		case fourccRIFF:
 			dwRIFFDataSize = dwChunkDataSize;
 			dwChunkDataSize = 4;
-			if (0 == ReadFile(File, &dwFileType, sizeof(DWORD), &dwRead, NULL))
+			if (!File.Read(&dwFileType, sizeof(DWORD), &dwRead))
 				hr = HRESULT_FROM_WIN32(GetLastError());
 			break;
 
 		default:
-			if (INVALID_SET_FILE_POINTER == SetFilePointer(File, dwChunkDataSize, NULL, FILE_CURRENT))
+			if (!File.SetPointerPosition(EPointerPosition::CURRENT,dwChunkDataSize))
 				return HRESULT_FROM_WIN32(GetLastError());
 		}
 
@@ -56,20 +56,23 @@ HRESULT CAudioManager::FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize,
 }
 
 
-HRESULT CAudioManager::ReadChunkData(HANDLE File, void * buffer, DWORD buffersize, DWORD bufferoffset)
+HRESULT CAudioManager::ReadChunkData(CFile& File, void * buffer, DWORD buffersize, DWORD bufferoffset)
 {
 	HRESULT hr = S_OK;
-	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, bufferoffset, NULL, FILE_BEGIN))
+	if (!File.SetPointerPosition(EPointerPosition::BEGIN,bufferoffset))
 		return HRESULT_FROM_WIN32(GetLastError());
-	DWORD dwRead;
-	if (0 == ReadFile(File, buffer, buffersize, &dwRead, NULL))
+	uint64_t dwRead;
+	if (!File.Read(buffer, buffersize, &dwRead))
 		hr = HRESULT_FROM_WIN32(GetLastError());
 	return hr;
 }
 
 bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 {
-	HANDLE File = CreateFile(
+	CFile AudioFile;
+	if (!CFile::Open(FilePath, EFileOpenMode::READ, AudioFile))
+		return false;
+	/*HANDLE File = CreateFile(
 		FilePath,
 		GENERIC_READ,
 		FILE_SHARE_READ,
@@ -82,7 +85,7 @@ bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 		return false;
 
 	if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN))
-		return false;
+		return false;*/
 
 	WAVEFORMATEXTENSIBLE WAVEFORMAT = { 0 };
 	XAUDIO2_BUFFER Buffer = { 0 };
@@ -90,19 +93,19 @@ bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 	DWORD ChunkSize;
 	DWORD ChunkPosition;
 	//check the file type, should be fourccWAVE or 'XWMA'
-	FindChunk(File, fourccRIFF, ChunkSize, ChunkPosition);
+	FindChunk(AudioFile, fourccRIFF, ChunkSize, ChunkPosition);
 	DWORD filetype;
-	ReadChunkData(File, &filetype, sizeof(DWORD), ChunkPosition);
+	ReadChunkData(AudioFile, &filetype, sizeof(DWORD), ChunkPosition);
 	if (filetype != fourccWAVE)
 		return false;
 
-	FindChunk(File, fourccFMT, ChunkSize, ChunkPosition);
-	ReadChunkData(File, &WAVEFORMAT, ChunkSize, ChunkPosition);
+	FindChunk(AudioFile, fourccFMT, ChunkSize, ChunkPosition);
+	ReadChunkData(AudioFile, &WAVEFORMAT, ChunkSize, ChunkPosition);
 
 	//fill out the audio data buffer with the contents of the fourccDATA chunk
-	FindChunk(File, fourccDATA, ChunkSize, ChunkPosition);
+	FindChunk(AudioFile, fourccDATA, ChunkSize, ChunkPosition);
 	BYTE * DataBuffer = new BYTE[ChunkSize];
-	ReadChunkData(File, DataBuffer, ChunkSize, ChunkPosition);
+	ReadChunkData(AudioFile, DataBuffer, ChunkSize, ChunkPosition);
 
 	Buffer.AudioBytes = ChunkSize;  //buffer containing audio data
 	Buffer.pAudioData = DataBuffer;  //size of the audio buffer in bytes

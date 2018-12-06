@@ -33,7 +33,8 @@ bool Transition<T>::Run(float ElapsedTime, T* CurrentValue)
 
 	if (CurrentDuration < Duration)
 	{
-		*CurrentValue = InitialValue + (FinalValue - InitialValue)* (CurrentDuration / Duration);
+		float Delta = CurrentDuration / Duration;
+		*CurrentValue = (1 - Delta)*InitialValue + Delta * FinalValue;
 		CurrentDuration += ElapsedTime;
 		CurrentDuration = fmin(CurrentDuration, Duration);
 		Finished = false;

@@ -1,5 +1,6 @@
 #pragma once
 #include <xaudio2.h>
+#include <File.h>
 
 #define fourccRIFF 'FFIR'
 #define fourccDATA 'atad'
@@ -34,8 +35,8 @@ public:
 	void StartEngine();
 private:
 
-	HRESULT FindChunk(HANDLE File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition);
-	HRESULT ReadChunkData(HANDLE File, void * buffer, DWORD buffersize, DWORD bufferoffset);
+	HRESULT FindChunk(CFile& File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition);
+	HRESULT ReadChunkData(CFile& File, void * buffer, DWORD buffersize, DWORD bufferoffset);
 
 	IXAudio2* XAudio2;
 	IXAudio2MasteringVoice* MasterVoice;
