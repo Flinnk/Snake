@@ -7,14 +7,13 @@
 void GameScene::Enter()
 {
 	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
-	Font = GetEngine()->ResourceManager.RetrieveFont("Boxy-Bold.ttf");
-	PickUpSound = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Pickup.wav", false);
+	PickUpSound = ResourceManager.LoadAndRetrieveAudioClip("Pickup.wav", false);
 	PickUpSound->SetVolume(0.04f);
 
-	DeathSound = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Death.wav", false);
+	DeathSound = ResourceManager.LoadAndRetrieveAudioClip("Death.wav", false);
 	DeathSound->SetVolume(0.25f);
 
-	Music = GetEngine()->ResourceManager.LoadAndRetrieveAudioClip("Game_Music.wav", true);
+	Music = ResourceManager.LoadAndRetrieveAudioClip("Game_Music.wav", true);
 	Music->SetVolume(0.25f);
 	Music->Play();
 
@@ -39,9 +38,9 @@ void GameScene::Enter()
 
 void GameScene::Exit()
 {
-	GetEngine()->ResourceManager.ReleaseAudioClip("Pickup.wav");
-	GetEngine()->ResourceManager.ReleaseAudioClip("Death.wav");
-	GetEngine()->ResourceManager.ReleaseAudioClip("Game_Music.wav");
+	ResourceManager.ReleaseAudioClip("Pickup.wav");
+	ResourceManager.ReleaseAudioClip("Death.wav");
+	ResourceManager.ReleaseAudioClip("Game_Music.wav");
 
 }
 
@@ -55,8 +54,6 @@ SceneIdentifier GameScene::Update(float ElapsedTime)
 
 SceneIdentifier GameScene::UpdateGame(float ElapsedTime)
 {
-	CInput& InputManager = GetEngine()->Input;
-
 	//Get Direction
 	Vector3 NewPosition = Vector3();
 	if (InputManager.Get(EInputKeys::LEFT) && CurrentDirection != MovementDirection::RIGHT)
@@ -128,7 +125,7 @@ SceneIdentifier GameScene::UpdateGame(float ElapsedTime)
 		MovementCounter = 0.0f;
 	}
 
-	RenderGame(GetEngine()->Renderer, TileSize, TileMap);
+	RenderGame(Renderer, TileSize, TileMap);
 
 	return SceneIdentifier::GAME;
 }
@@ -137,7 +134,7 @@ SceneIdentifier GameScene::UpdateGameOver(float ElapsedTime)
 {
 	CEngine* Engine = GetEngine();
 
-	if (GetEngine()->Input.GetDown(EInputKeys::START))
+	if (InputManager.GetDown(EInputKeys::START))
 	{
 		if (CurrentButton == GameButton::PLAY)
 		{
@@ -153,11 +150,11 @@ SceneIdentifier GameScene::UpdateGameOver(float ElapsedTime)
 	}
 
 	unsigned int ButtonValue = (unsigned int)CurrentButton;
-	if (Engine->Input.GetDown(EInputKeys::UP))
+	if (InputManager.GetDown(EInputKeys::UP))
 	{
 		ButtonValue = min(ButtonValue - 1, (unsigned int)GameButton::PLAY);
 	}
-	else if (Engine->Input.GetDown(EInputKeys::DOWN))
+	else if (InputManager.GetDown(EInputKeys::DOWN))
 	{
 		ButtonValue = min(ButtonValue + 1, (unsigned int)GameButton::EXIT);
 	}
@@ -169,14 +166,13 @@ SceneIdentifier GameScene::UpdateGameOver(float ElapsedTime)
 		AlphaAnimation.Reset();
 		AlphaAnimation.Inverse();
 	}
-	CRenderer& Renderer = Engine->Renderer;
 	RenderGame(Renderer, TileSize, TileMap);
 	Renderer.DrawSprite(Vector3((WINDOW_WIDTH / 2) - 300 / 2, (WINDOW_HEIGHT / 2) - 300 / 2, 0), Vector3(300, 300, 0), Vector3(0, 0, 0), Vector4(0.088f, 0.2f, 0.3f, 1.0));
 	Renderer.DrawSprite(Vector3((WINDOW_WIDTH / 2) - 250 / 2, (WINDOW_HEIGHT / 2) - 250 / 2, 0), Vector3(250, 250, 0), Vector3(0, 0, 0), Vector4(0, 0.0f, 0.0f, 1.0));
 
-	Renderer.DrawTextExt(Font, "GAME OVER", Vector3((WINDOW_WIDTH / 2) - (250 / 2) +25/2, (WINDOW_HEIGHT / 2) + 175 / 2, 0), Vector3(25, 25, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
-	Renderer.DrawTextExt(Font, "PLAY AGAIN", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -75 / 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::PLAY ? Alpha : 1));
-	Renderer.DrawTextExt(Font, "GO TO MENU", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -175/ 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::EXIT ? Alpha : 1));
+	Renderer.DrawTextExt("GAME OVER", Vector3((WINDOW_WIDTH / 2) - (250 / 2) +25/2, (WINDOW_HEIGHT / 2) + 175 / 2, 0), Vector3(25, 25, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
+	Renderer.DrawTextExt("PLAY AGAIN", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -75 / 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::PLAY ? Alpha : 1));
+	Renderer.DrawTextExt("GO TO MENU", Vector3((WINDOW_WIDTH / 2) - (250 / 2) + 40 / 2, (WINDOW_HEIGHT / 2) -175/ 2, 0), Vector3(20, 20, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, CurrentButton == GameButton::EXIT ? Alpha : 1));
 
 	return SceneIdentifier::GAME;
 }
@@ -291,10 +287,10 @@ void GameScene::RenderGame(CRenderer& Renderer, Vector3& TileSize, TileMapValue 
 	char Buffer[256];
 	sprintf(Buffer, "Score:%d", Score);
 	int t = strlen(Buffer);
-	Renderer.DrawTextExt(Font, Buffer, Vector3(WINDOW_WIDTH - 40 * t, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
+	Renderer.DrawTextExt(Buffer, Vector3(WINDOW_WIDTH - 40 * t, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
 	sprintf(Buffer, "Lives:%d", Lives);
 	t = strlen(Buffer);
-	Renderer.DrawTextExt(Font, Buffer, Vector3(0, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
+	Renderer.DrawTextExt(Buffer, Vector3(0, GAME_HEIGHT, 0), Vector3(40, 50, 0), Vector3(0, 0, 0), Vector4(0, 1, 0, 1));
 
 }
 

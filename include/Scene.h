@@ -1,4 +1,5 @@
 #pragma once
+
 #include <Engine.h>
 
 enum class SceneIdentifier : unsigned int

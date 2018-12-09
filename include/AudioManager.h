@@ -1,6 +1,6 @@
 #pragma once
-#include <xaudio2.h>
 #include <File.h>
+#include <AudioClip.h>
 
 #define fourccRIFF 'FFIR'
 #define fourccDATA 'atad'
@@ -8,21 +8,6 @@
 #define fourccWAVE 'EVAW'
 #define fourccXWMA 'AMWX'
 #define fourccDPDS 'sdpd'
-
-class CAudioClip
-{
-public:
-	CAudioClip() :SourceVoice(nullptr), DataBuffer(nullptr) {}
-	void Initialize(IXAudio2SourceVoice* SourceVoice, BYTE * DataBuffer, XAUDIO2_BUFFER ContentBuffer);
-	void Play();
-	void Stop();
-	void SetVolume(float Volume);
-	void Release();
-private:
-	IXAudio2SourceVoice* SourceVoice;
-	BYTE * DataBuffer;
-	XAUDIO2_BUFFER Buffer;
-};
 
 class CAudioManager
 {
@@ -41,3 +26,5 @@ private:
 	IXAudio2* XAudio2;
 	IXAudio2MasteringVoice* MasterVoice;
 };
+
+extern CAudioManager AudioManager;

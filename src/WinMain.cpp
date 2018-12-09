@@ -1,59 +1,16 @@
 #pragma warning(disable:4996)
+
 #include <string>
 #include <Math.h>
 #include <time.h>
 #include <GameScene.h>
 #include <IntroScene.h>
 #include <Constants.h>
-#include <Audio.h>
-#include <Core.h>
-#include <stb/stb_truetype.h>
-#include <Engine.h>
 #include <PlatformTime.h>
 #include <File.h>
-
-void UpdateInput(CInput* InInput)
-{
-	for (int i = 0; i < ENUM_TO_UINT(EInputDevices::TOTAL); ++i)
-	{
-		SInputDevice&  Device = InInput->Devices[i];
-		for (int j = 0; j < ENUM_TO_UINT(EInputKeys::TOTAL); ++j)
-		{
-			Device.Keys[j].PreviousState = Device.Keys[j].CurrentState;
-		}
-	}
-
-	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::UP)].CurrentState = (GetAsyncKeyState(VK_UP) & 0x8000) != 0 || (GetAsyncKeyState('W') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::DOWN)].CurrentState = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0 || (GetAsyncKeyState('S') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::LEFT)].CurrentState = (GetAsyncKeyState(VK_LEFT) & 0x8000) != 0 || (GetAsyncKeyState('A') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::RIGHT)].CurrentState = (GetAsyncKeyState(VK_RIGHT) & 0x8000) != 0 || (GetAsyncKeyState('D') & 0x8000) != 0;
-	InInput->Devices[ENUM_TO_UINT(EInputDevices::KEYBOARD)].Keys[ENUM_TO_UINT(EInputKeys::START)].CurrentState = (GetAsyncKeyState(VK_RETURN) & 0x8000) != 0;
-
-	DWORD Result;
-	XINPUT_STATE State;
-	ZeroMemory(&State, sizeof(XINPUT_STATE));
-
-	// Simply get the state of the controller from XInput.
-	Result = XInputGetState(0, &State);
-
-	if (Result == ERROR_SUCCESS)
-	{
-		// Controller is connected 
-		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::UP)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::DOWN)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::LEFT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::RIGHT)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-		InInput->Devices[ENUM_TO_UINT(EInputDevices::GAMEPAD)].Keys[ENUM_TO_UINT(EInputKeys::START)].CurrentState = State.Gamepad.wButtons & XINPUT_GAMEPAD_START;
-
-	}
-	else
-	{
-		// Controller is not connected 
-	}
-}
+#include <Log.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-void ShowSystemErrorMessage(const char* Message);
 
 static bool bRun = true;
 
@@ -68,8 +25,6 @@ struct State
 	WindowsVariables WinVariables;
 	bool HasFocus = true;
 };
-
-
 
 bool InitializeWindow(HINSTANCE hInstance, WindowsVariables* Variables)
 {
@@ -114,27 +69,23 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	srand(time(NULL));
 	State GameState;
 
-	unsigned int IntroSize = sizeof(IntroScene);
-	unsigned int GameSize = sizeof(GameScene);
-
 	if (!InitializeWindow(hInstance, &GameState.WinVariables))
 	{
-		ShowSystemErrorMessage("Failed to create window");
+		ShowSystemErrorMessage("Failed to create Window");
 		return 0;
 	}
 
 	SetWindowLongPtr(GameState.WinVariables.WindowHandle, GWLP_USERDATA, (LONG_PTR)&GameState);
 
-	if (!Engine.Renderer.Initialize(GameState.WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
+	if (!Renderer.Initialize(GameState.WinVariables.WindowHandle, WINDOW_WIDTH, WINDOW_HEIGHT))
 	{
-		Engine.Renderer.Release();
+		ShowSystemErrorMessage("Failed to initialize DirectX");
+		Renderer.Release();
 		return 0;
 	}
 
-	if (!Engine.AudioManager.Initialize())
+	if (!AudioManager.Initialize())
 		ShowSystemErrorMessage("Failed to initialize AudioSystem");
-
-	CFont* TextFont = Engine.ResourceManager.LoadAndRetrieveFont("Boxy-Bold.ttf", 160, 2048, 2048);
 
 	float ElapsedTime = 0;
 
@@ -147,7 +98,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
 	float LastCounter = GetEllapsedMilliseconds();
 
-	while (bRun && !Engine.bClose)
+	while (bRun && !Engine.HasRequestExit())
 	{
 		while (PeekMessage(&Message, GameState.WinVariables.WindowHandle, 0, 0, PM_REMOVE))
 		{
@@ -157,10 +108,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		if (GameState.HasFocus)//If we dont have focus we should put the process to sleep to not waste cpu
 		{
-			UpdateInput(&Engine.Input);
+			InputManager.Update();
 
-			Engine.Renderer.Clear(ClearColor);
-			Engine.Renderer.Begin();
+			Renderer.Clear(ClearColor);
+			Renderer.Begin();
 
 			if (NextSceneIdentifier != CurrentSceneIdentifier)
 			{
@@ -185,8 +136,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			NextSceneIdentifier = GameState.CurrentScene->Update(ElapsedTime);
 
-			Engine.Renderer.End();
-			Engine.Renderer.Present();
+			Renderer.End();
+			Renderer.Present();
 
 			float CurrentCounter = GetEllapsedMilliseconds();
 			ElapsedTime = (CurrentCounter - LastCounter);
@@ -198,7 +149,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 
 	}
-	Engine.ResourceManager.ReleaseFont("Boxy-Bold.ttf");
 
 	if (GameState.CurrentScene)
 	{
@@ -206,14 +156,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		delete GameState.CurrentScene;
 	}
 
-	Engine.Renderer.Release();
-	Engine.AudioManager.Release();
+	AudioManager.Release();	
+	Renderer.Release();
 	return 0;
-}
-
-void ShowSystemErrorMessage(const char* Message)
-{
-	MessageBox(NULL, Message, "Error", MB_OK | MB_ICONERROR);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -230,7 +175,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = true;
-			GetEngine()->AudioManager.StartEngine();
+			AudioManager.StartEngine();
 		}
 		return 0;
 	}
@@ -240,7 +185,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = false;
-			GetEngine()->AudioManager.StopEngine();
+			AudioManager.StopEngine();
 		}
 		return 0;
 	}

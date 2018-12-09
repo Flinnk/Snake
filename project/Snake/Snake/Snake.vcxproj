@@ -95,6 +95,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;xinput.lib;Xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -106,6 +107,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;xinput.lib;Xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -119,6 +121,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -134,6 +137,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -142,10 +146,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\AudioClip.cpp" />
     <ClCompile Include="..\..\..\src\File.cpp" />
     <ClCompile Include="..\..\..\src\GameScene.cpp" />
+    <ClCompile Include="..\..\..\src\Input.cpp" />
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
-    <ClCompile Include="..\..\..\src\Audio.cpp" />
+    <ClCompile Include="..\..\..\src\AudioManager.cpp" />
+    <ClCompile Include="..\..\..\src\Log.cpp" />
     <ClCompile Include="..\..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\..\src\ResourceManager.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
@@ -154,14 +161,16 @@
     <ClCompile Include="..\..\..\src\WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\include\AudioClip.h" />
     <ClInclude Include="..\..\..\include\Constants.h" />
     <ClInclude Include="..\..\..\include\Engine.h" />
     <ClInclude Include="..\..\..\include\File.h" />
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
+    <ClInclude Include="..\..\..\include\Log.h" />
     <ClInclude Include="..\..\..\include\ResourceManager.h" />
     <ClInclude Include="..\..\..\include\Scene.h" />
-    <ClInclude Include="..\..\..\include\Audio.h" />
+    <ClInclude Include="..\..\..\include\AudioManager.h" />
     <ClInclude Include="..\..\..\include\Input.h" />
     <ClInclude Include="..\..\..\include\MathExt.h" />
     <ClInclude Include="..\..\..\include\Renderer.h" />

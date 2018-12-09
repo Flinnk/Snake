@@ -20,7 +20,6 @@ public:
 private:
 	Transition<float> TitleAnimation;
 	Transition<float> AlphaAnimation;
-	CFont* Font;
 	IntroButton CurrentButton;
 	CAudioClip* Music;
 };

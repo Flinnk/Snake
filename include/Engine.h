@@ -1,20 +1,25 @@
 #pragma once
-#include <Audio.h>
 #include <Renderer.h>
 #include <Input.h>
+#include <AudioManager.h>
 #include <ResourceManager.h>
+
 
 struct CEngine
 {
 public:
 	CEngine() {};
-	
-	bool bClose=false;
 
-	CAudioManager AudioManager;
-	CRenderer Renderer;
-	CInput Input;
-	CResourceManager ResourceManager;
+	void RequestExit()
+	{
+		bClose = true;
+	}
+	bool HasRequestExit()
+	{
+		return bClose;
+	}
+private:
+	bool bClose=false;
 };
 
 

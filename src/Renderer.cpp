@@ -4,6 +4,9 @@
 #include <d3dcompiler.h>
 #include <stb/stb_image.h>
 #include <File.h>
+#include <ResourceManager.h>
+#include <Log.h>
+CRenderer Renderer;
 
 static const char SpriteShaderCode[] = "\
 	cbuffer BufferPerBatch  \
@@ -102,7 +105,7 @@ void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
 		*ArrayPointer = compileErrors[i];
 	}
 
-	OutputDebugString(Text);
+	DebugLog(Text);
 
 	delete Text;
 
@@ -472,6 +475,8 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	}
 
 	DeviceContext->OMSetBlendState(BlendState, 0, 0xffffffff);
+	DefaultFont = LoadFont("Boxy-Bold.ttf", 160, 2048, 2048);
+
 	return true;
 }
 
@@ -596,7 +601,7 @@ void CRenderer::DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vecto
 	InternalDrawSprite(ERenderMode::SPRITE, Position, Size, Offset, Color, Texture, UVPos, UVSize);
 }
 
-void CRenderer::DrawTextExt(CFont* Font, const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
+void CRenderer::DrawTextExt(const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color)
 {
 	int xOffset = 0;
 	for (int i = 0; i < strlen(Text); ++i)
@@ -604,10 +609,10 @@ void CRenderer::DrawTextExt(CFont* Font, const char* Text, Vector3 Position, Vec
 		const char Character = Text[i];
 		if (Character != ' ')
 		{
-			stbtt_bakedchar CharInfo = Font->cdata[Character];
-			Vector3 UVPos(CharInfo.x0 / (float)Font->Texture->GetWidth(), CharInfo.y0 / (float)Font->Texture->GetHeight(), 0);
-			Vector3 UVSize(CharInfo.x1 / (float)Font->Texture->GetWidth(), CharInfo.y1 / (float)Font->Texture->GetHeight(), 0);
-			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, Font->Texture, UVPos, UVSize);
+			stbtt_bakedchar CharInfo = DefaultFont.cdata[Character];
+			Vector3 UVPos(CharInfo.x0 / (float)DefaultFont.Texture->GetWidth(), CharInfo.y0 / (float)DefaultFont.Texture->GetHeight(), 0);
+			Vector3 UVSize(CharInfo.x1 / (float)DefaultFont.Texture->GetWidth(), CharInfo.y1 / (float)DefaultFont.Texture->GetHeight(), 0);
+			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, DefaultFont.Texture, UVPos, UVSize);
 			xOffset += Size.X;
 		}
 		else
@@ -738,6 +743,7 @@ CFont CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitF
 
 void CRenderer::Release()
 {
+	DefaultFont.Release();
 	D3D_SAFE_RELEASE(BlendState);
 	D3D_SAFE_RELEASE(SamplerState);
 	SpriteTexture.Release();
