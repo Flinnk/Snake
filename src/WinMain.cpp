@@ -9,6 +9,7 @@
 #include <PlatformTime.h>
 #include <File.h>
 #include <Log.h>
+#include <MemoryManager.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -65,6 +66,9 @@ CEngine* GetEngine()
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	if (!MemoryManager.Initialize())
+		return 0;
+
 	InitializeTime();
 	srand(time(NULL));
 	State GameState;
@@ -92,12 +96,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG Message = {};
 	Vector4 ClearColor = Vector4(0.0, 0.0, 0.0, 1.0);
 
-	GameState.CurrentScene = new IntroScene();
+	GameState.CurrentScene = new((IntroScene*)MemoryManager.AllocateSceneMemory(sizeof(IntroScene)))IntroScene();
 	GameState.CurrentScene->Enter();
 	SceneIdentifier CurrentSceneIdentifier = SceneIdentifier::INTRO;
 	SceneIdentifier NextSceneIdentifier = SceneIdentifier::INTRO;
 	float LastCounter = GetEllapsedMilliseconds();
 
+	MemoryManager.FreeFrameMemory();
 	while (bRun && !Engine.HasRequestExit())
 	{
 		while (PeekMessage(&Message, GameState.WinVariables.WindowHandle, 0, 0, PM_REMOVE))
@@ -116,18 +121,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			if (NextSceneIdentifier != CurrentSceneIdentifier)
 			{
 				GameState.CurrentScene->Exit();
-				delete GameState.CurrentScene;
 				CurrentSceneIdentifier = NextSceneIdentifier;
+				MemoryManager.FreeSceneMemory();
 				switch (CurrentSceneIdentifier)
 				{
 				case SceneIdentifier::INTRO:
 				{
-					GameState.CurrentScene = new IntroScene();
+					GameState.CurrentScene = new((IntroScene*)MemoryManager.AllocateSceneMemory(sizeof(IntroScene)))IntroScene();
 					break;
 				}
 				case SceneIdentifier::GAME:
 				{
-					GameState.CurrentScene = new GameScene();
+					GameState.CurrentScene = new((GameScene*)MemoryManager.AllocateSceneMemory(sizeof(GameScene)))GameScene();
 					break;
 				}
 				}
@@ -138,6 +143,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			Renderer.End();
 			Renderer.Present();
+			MemoryManager.FreeFrameMemory();
 
 			float CurrentCounter = GetEllapsedMilliseconds();
 			ElapsedTime = (CurrentCounter - LastCounter);
@@ -153,11 +159,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	if (GameState.CurrentScene)
 	{
 		GameState.CurrentScene->Exit();
-		delete GameState.CurrentScene;
 	}
 
-	AudioManager.Release();	
+	AudioManager.Release();
 	Renderer.Release();
+
+	MemoryManager.Release();
+
 	return 0;
 }
 

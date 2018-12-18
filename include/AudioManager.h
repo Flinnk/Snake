@@ -9,12 +9,14 @@
 #define fourccXWMA 'AMWX'
 #define fourccDPDS 'sdpd'
 
+class CLinearAllocator;
+
 class CAudioManager
 {
 public:
 	CAudioManager() :XAudio2(nullptr), MasterVoice(nullptr) {}
 	bool Initialize();
-	bool LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop);
+	bool LoadAudio(CLinearAllocator* const Allocator,const char* FilePath, CAudioClip* Clip, bool Loop);
 	void Release();
 	void StopEngine();
 	void StartEngine();

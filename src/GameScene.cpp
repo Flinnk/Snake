@@ -7,13 +7,18 @@
 void GameScene::Enter()
 {
 	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
-	PickUpSound = ResourceManager.LoadAndRetrieveAudioClip("Pickup.wav", false);
+
+	PickUpSound = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
+	DeathSound = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
+	Music = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
+
+	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Pickup.wav", PickUpSound, false);
 	PickUpSound->SetVolume(0.04f);
 
-	DeathSound = ResourceManager.LoadAndRetrieveAudioClip("Death.wav", false);
+	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Death.wav", DeathSound, false);
 	DeathSound->SetVolume(0.25f);
 
-	Music = ResourceManager.LoadAndRetrieveAudioClip("Game_Music.wav", true);
+	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Game_Music.wav", Music, true);
 	Music->SetVolume(0.25f);
 	Music->Play();
 
@@ -38,10 +43,7 @@ void GameScene::Enter()
 
 void GameScene::Exit()
 {
-	ResourceManager.ReleaseAudioClip("Pickup.wav");
-	ResourceManager.ReleaseAudioClip("Death.wav");
-	ResourceManager.ReleaseAudioClip("Game_Music.wav");
-
+	
 }
 
 SceneIdentifier GameScene::Update(float ElapsedTime)

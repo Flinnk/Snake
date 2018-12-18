@@ -1,6 +1,6 @@
 #include <AudioManager.h>
 #include <File.h>
-
+#include <LinearAllocator.h>
 CAudioManager AudioManager;
 
 HRESULT CAudioManager::FindChunk(CFile& File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
@@ -70,7 +70,7 @@ HRESULT CAudioManager::ReadChunkData(CFile& File, void * buffer, DWORD buffersiz
 	return hr;
 }
 
-bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
+bool CAudioManager::LoadAudio(CLinearAllocator* const Allocator,const char* FilePath, CAudioClip* Clip, bool Loop)
 {
 	CFile AudioFile;
 	if (!CFile::Open(FilePath, EFileOpenMode::READ, AudioFile))
@@ -107,7 +107,7 @@ bool CAudioManager::LoadAudio(const char* FilePath, CAudioClip* Clip, bool Loop)
 
 	//fill out the audio data buffer with the contents of the fourccDATA chunk
 	FindChunk(AudioFile, fourccDATA, ChunkSize, ChunkPosition);
-	BYTE * DataBuffer = new BYTE[ChunkSize];
+	BYTE * DataBuffer = (BYTE*)Allocator->Allocate(ChunkSize);
 	ReadChunkData(AudioFile, DataBuffer, ChunkSize, ChunkPosition);
 
 	Buffer.AudioBytes = ChunkSize;  //buffer containing audio data

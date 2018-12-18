@@ -4,8 +4,8 @@
 #include <d3dcompiler.h>
 #include <stb/stb_image.h>
 #include <File.h>
-#include <ResourceManager.h>
 #include <Log.h>
+#include <MemoryManager.h>
 CRenderer Renderer;
 
 static const char SpriteShaderCode[] = "\
@@ -97,7 +97,7 @@ void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
 	// Get the length of the message.
 	bufferSize = errorMessage->GetBufferSize();
 
-	char* Text = new char[bufferSize];
+	char* Text = (char*)MemoryManager.AllocateFrameMemory(sizeof(char)*bufferSize);
 	char* ArrayPointer = Text;
 	// Write out the error message.
 	for (i = 0; i < bufferSize; i++, ArrayPointer++)
@@ -107,7 +107,7 @@ void OutputShaderErrorMessage(ID3D10Blob* errorMessage)
 
 	DebugLog(Text);
 
-	delete Text;
+	//delete Text;
 
 	// Release the error message.
 	errorMessage->Release();
@@ -609,10 +609,10 @@ void CRenderer::DrawTextExt(const char* Text, Vector3 Position, Vector3 Size, Ve
 		const char Character = Text[i];
 		if (Character != ' ')
 		{
-			stbtt_bakedchar CharInfo = DefaultFont.cdata[Character];
-			Vector3 UVPos(CharInfo.x0 / (float)DefaultFont.Texture->GetWidth(), CharInfo.y0 / (float)DefaultFont.Texture->GetHeight(), 0);
-			Vector3 UVSize(CharInfo.x1 / (float)DefaultFont.Texture->GetWidth(), CharInfo.y1 / (float)DefaultFont.Texture->GetHeight(), 0);
-			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, DefaultFont.Texture, UVPos, UVSize);
+			stbtt_bakedchar CharInfo = DefaultFont->cdata[Character];
+			Vector3 UVPos(CharInfo.x0 / (float)DefaultFont->Texture->GetWidth(), CharInfo.y0 / (float)DefaultFont->Texture->GetHeight(), 0);
+			Vector3 UVSize(CharInfo.x1 / (float)DefaultFont->Texture->GetWidth(), CharInfo.y1 / (float)DefaultFont->Texture->GetHeight(), 0);
+			InternalDrawSprite(ERenderMode::TEXT, Vector3(Position.X + xOffset, Position.Y, Position.Z), Size, Offset, Color, DefaultFont->Texture, UVPos, UVSize);
 			xOffset += Size.X;
 		}
 		else
@@ -711,12 +711,13 @@ CTexture* CRenderer::LoadTextureFromMemory(const unsigned char* Data, int Textur
 		}
 	}
 
-	return new CTexture(STexture, TextureView, TextureWidth, TextureHeight);
+	void* Texture = MemoryManager.AllocateEngineMemory(sizeof(CTexture));
+	return new(Texture) CTexture(STexture, TextureView, TextureWidth, TextureHeight);//placement new
 }
 
-CFont CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight)
+CFont* CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight)
 {
-	CFont Font;
+	CFont* Font = (CFont*)MemoryManager.AllocateEngineMemory(sizeof(CFont));
 	unsigned char* fontBuffer;
 
 	//Add Error control
@@ -726,24 +727,24 @@ CFont CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitF
 	uint64_t bytesRead = 0;
 
 	FontFile.GetFileSize(size);
-	fontBuffer = (unsigned char*)malloc(size);
+	fontBuffer = (unsigned char*)MemoryManager.AllocateFrameMemory(size);
 	FontFile.ReadAll(fontBuffer, &bytesRead);
 	FontFile.Close();
 
-	unsigned char* temp_bitmap = new unsigned char[BitFontWidth * BitFontHeight];
+	unsigned char* temp_bitmap = (unsigned char*)MemoryManager.AllocateFrameMemory(sizeof(unsigned char)*BitFontWidth * BitFontHeight);
 
-	int result = stbtt_BakeFontBitmap(fontBuffer, 0, Size, temp_bitmap, BitFontWidth, BitFontHeight, 0, 255, Font.cdata);
+	int result = stbtt_BakeFontBitmap(fontBuffer, 0, Size, temp_bitmap, BitFontWidth, BitFontHeight, 0, 255, Font->cdata);
 
 	CTexture* BitmapFont = LoadTextureFromMemory(temp_bitmap, BitFontWidth, BitFontHeight, 1);
-	free(fontBuffer);
-	delete(temp_bitmap);
-	Font.Texture = BitmapFont;
+	//free(fontBuffer);
+	//delete(temp_bitmap);
+	Font->Texture = BitmapFont;
 	return Font;
 }
 
 void CRenderer::Release()
 {
-	DefaultFont.Release();
+	DefaultFont->Release();
 	D3D_SAFE_RELEASE(BlendState);
 	D3D_SAFE_RELEASE(SamplerState);
 	SpriteTexture.Release();

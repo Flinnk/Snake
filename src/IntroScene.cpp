@@ -6,7 +6,8 @@ void IntroScene::Enter()
 {
 	TitleAnimation.Initialize(WINDOW_HEIGHT, WINDOW_HEIGHT / 2 + 60 * 2, 1.0f);
 	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
-	Music = ResourceManager.LoadAndRetrieveAudioClip("trance-menu.wav", true);
+	Music = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
+	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "trance-menu.wav", Music, true);
 	Music->Play();
 	Music->SetVolume(0.05f);
 	CurrentButton = IntroButton::PLAY;
@@ -15,7 +16,6 @@ void IntroScene::Enter()
 void IntroScene::Exit()
 {
 	Music->Stop();
-	ResourceManager.ReleaseAudioClip("trance-menu.wav");
 }
 
 SceneIdentifier IntroScene::Update(float ElapsedTime)

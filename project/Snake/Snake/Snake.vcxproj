@@ -152,9 +152,10 @@
     <ClCompile Include="..\..\..\src\Input.cpp" />
     <ClCompile Include="..\..\..\src\IntroScene.cpp" />
     <ClCompile Include="..\..\..\src\AudioManager.cpp" />
+    <ClCompile Include="..\..\..\src\LinearAllocator.cpp" />
     <ClCompile Include="..\..\..\src\Log.cpp" />
+    <ClCompile Include="..\..\..\src\MemoryManager.cpp" />
     <ClCompile Include="..\..\..\src\Renderer.cpp" />
-    <ClCompile Include="..\..\..\src\ResourceManager.cpp" />
     <ClCompile Include="..\..\..\src\stb_image.cpp" />
     <ClCompile Include="..\..\..\src\stb_truetype.cpp" />
     <ClCompile Include="..\..\..\src\WinTime.cpp" />
@@ -167,8 +168,9 @@
     <ClInclude Include="..\..\..\include\File.h" />
     <ClInclude Include="..\..\..\include\GameScene.h" />
     <ClInclude Include="..\..\..\include\IntroScene.h" />
+    <ClInclude Include="..\..\..\include\LinearAllocator.h" />
     <ClInclude Include="..\..\..\include\Log.h" />
-    <ClInclude Include="..\..\..\include\ResourceManager.h" />
+    <ClInclude Include="..\..\..\include\MemoryManager.h" />
     <ClInclude Include="..\..\..\include\Scene.h" />
     <ClInclude Include="..\..\..\include\AudioManager.h" />
     <ClInclude Include="..\..\..\include\Input.h" />

@@ -77,7 +77,7 @@ public:
 	{
 		if (Texture)
 			Texture->Release();
-		delete Texture;
+		//delete Texture;
 		Texture = nullptr;
 	}
 
@@ -104,7 +104,7 @@ public:
 
 	CTexture LoadTextureFromFile(const char* Path);
 	CTexture* LoadTextureFromMemory(const unsigned char* Data, int TextureWidth, int TextureHeight, int TextureChannels);
-	CFont LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight);
+	CFont* LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight);
 	void DrawSprite(Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color, CTexture* SpriteTexture = nullptr, Vector3 UVPos = Vector3(0, 0, 0), Vector3 UVSize = Vector3(1, 1, 0));
 	void DrawTextExt(const char* Text, Vector3 Position, Vector3 Size, Vector3 Offset, Vector4 Color);
 	void End();
@@ -141,7 +141,7 @@ private:
 
 	CTexture SpriteTexture;
 	CTexture* LastDrawnTexture = nullptr;
-	CFont DefaultFont;
+	CFont* DefaultFont;
 	unsigned int IndicesToDraw = 0;
 	ERenderMode CurrentRenderMode = ERenderMode::NONE;
 };
