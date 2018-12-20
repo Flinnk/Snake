@@ -10,17 +10,22 @@ void CAudioClip::Initialize(IXAudio2SourceVoice* SourceVoiceParameter, BYTE * Da
 void CAudioClip::Play()
 {
 	Stop();
-	SourceVoice->SubmitSourceBuffer(&Buffer);
-	SourceVoice->Start(0, 0);
+	if (SourceVoice)
+	{
+		SourceVoice->SubmitSourceBuffer(&Buffer);
+		SourceVoice->Start(0, 0);
+	}
 }
 
 void CAudioClip::Stop()
 {
-	SourceVoice->Stop(0, 0);
+	if (SourceVoice)
+		SourceVoice->Stop(0, 0);
 }
 void CAudioClip::SetVolume(float Volume)
 {
-	SourceVoice->SetVolume(Volume);
+	if (SourceVoice)
+		SourceVoice->SetVolume(Volume);
 }
 
 void CAudioClip::Release()

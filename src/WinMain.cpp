@@ -67,7 +67,10 @@ CEngine* GetEngine()
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	if (!MemoryManager.Initialize())
+	{
+		ShowSystemErrorMessage("Failed to allocate game memory.");
 		return 0;
+	}
 
 	InitializeTime();
 	srand(time(NULL));
@@ -88,8 +91,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		return 0;
 	}
 
-	if (!AudioManager.Initialize())
-		ShowSystemErrorMessage("Failed to initialize AudioSystem");
+	if (!AudioManager.Initialize()) 
+	{
+		ShowSystemErrorMessage("Failed to initialize XAudio");
+		return 0;
+	}
 
 	float ElapsedTime = 0;
 
@@ -183,6 +189,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = true;
+			if (AudioManager.IsInitialized())
 			AudioManager.StartEngine();
 		}
 		return 0;
@@ -193,7 +200,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GameState)
 		{
 			GameState->HasFocus = false;
-			AudioManager.StopEngine();
+			if (AudioManager.IsInitialized())
+				AudioManager.StopEngine();
 		}
 		return 0;
 	}

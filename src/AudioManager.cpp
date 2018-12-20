@@ -114,7 +114,7 @@ bool CAudioManager::LoadAudio(CLinearAllocator* const Allocator,const char* File
 	Buffer.pAudioData = DataBuffer;  //size of the audio buffer in bytes
 	Buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
 	Buffer.LoopCount = Loop ? XAUDIO2_LOOP_INFINITE : 0;
-	IXAudio2SourceVoice* SourceVoice;
+	IXAudio2SourceVoice* SourceVoice = nullptr;
 	HRESULT hr;
 	if (FAILED(hr = XAudio2->CreateSourceVoice(&SourceVoice, (WAVEFORMATEX*)&WAVEFORMAT)))
 		return false;
@@ -136,6 +136,7 @@ bool CAudioManager::Initialize()
 	if (FAILED(Result = XAudio2->CreateMasteringVoice(&MasterVoice)))
 		return false;
 
+	bInitialized = true;
 	return true;
 }
 

@@ -3,6 +3,7 @@
 #include <GameScene.h>
 #include <cstdio>
 #include <math.h>
+#include <Log.h>
 
 void GameScene::Enter()
 {
@@ -12,13 +13,19 @@ void GameScene::Enter()
 	DeathSound = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
 	Music = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
 
-	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Pickup.wav", PickUpSound, false);
+	if (!AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Resources/Pickup.wav", PickUpSound, false))
+	ShowSystemErrorMessage("Failed to load Pickup.wav");
+
 	PickUpSound->SetVolume(0.04f);
 
-	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Death.wav", DeathSound, false);
+	if (!AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Resources/Death.wav", DeathSound, false))
+	ShowSystemErrorMessage("Failed to load Death.wav");
+
 	DeathSound->SetVolume(0.25f);
 
-	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Game_Music.wav", Music, true);
+	if(!AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Resources/Game_Music.wav", Music, true))
+	ShowSystemErrorMessage("Failed to load Game_Music.wav");
+
 	Music->SetVolume(0.25f);
 	Music->Play();
 

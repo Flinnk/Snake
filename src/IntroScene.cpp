@@ -1,13 +1,15 @@
 
 #include <IntroScene.h>
 #include <string>
+#include <Log.h>
 
 void IntroScene::Enter()
 {
 	TitleAnimation.Initialize(WINDOW_HEIGHT, WINDOW_HEIGHT / 2 + 60 * 2, 1.0f);
 	AlphaAnimation.Initialize(0, 1.0f, 0.4f);
 	Music = new(MemoryManager.AllocateSceneMemory(sizeof(CAudioClip)))CAudioClip();
-	AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "trance-menu.wav", Music, true);
+	if (!AudioManager.LoadAudio(MemoryManager.GetSceneMemoryAllocator(), "Resources/trance-menu.wav", Music, true))
+		ShowSystemErrorMessage("Failed to load trance-menu.wav");
 	Music->Play();
 	Music->SetVolume(0.05f);
 	CurrentButton = IntroButton::PLAY;

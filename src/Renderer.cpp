@@ -475,7 +475,9 @@ bool CRenderer::Initialize(HWND WindowHandle, int InWidth, int InHeight)
 	}
 
 	DeviceContext->OMSetBlendState(BlendState, 0, 0xffffffff);
-	DefaultFont = LoadFont("Boxy-Bold.ttf", 160, 2048, 2048);
+	DefaultFont = LoadFont("Resources/Boxy-Bold.ttf", 160, 2048, 2048);
+	if (!DefaultFont)
+		return false;
 
 	return true;
 }
@@ -717,8 +719,6 @@ CTexture* CRenderer::LoadTextureFromMemory(const unsigned char* Data, int Textur
 
 CFont* CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int BitFontHeight)
 {
-	CFont* Font = (CFont*)MemoryManager.AllocateEngineMemory(sizeof(CFont));
-	unsigned char* fontBuffer;
 
 	//Add Error control
 	CFile FontFile;
@@ -727,6 +727,10 @@ CFont* CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int Bit
 	uint64_t bytesRead = 0;
 
 	FontFile.GetFileSize(size);
+	if (size == 0)
+		return nullptr;
+	CFont* Font = (CFont*)MemoryManager.AllocateEngineMemory(sizeof(CFont));
+	unsigned char* fontBuffer;
 	fontBuffer = (unsigned char*)MemoryManager.AllocateFrameMemory(size);
 	FontFile.ReadAll(fontBuffer, &bytesRead);
 	FontFile.Close();
@@ -744,7 +748,8 @@ CFont* CRenderer::LoadFont(const char* Path, int Size, int BitFontWidth, int Bit
 
 void CRenderer::Release()
 {
-	DefaultFont->Release();
+	if (DefaultFont)
+		DefaultFont->Release();
 	D3D_SAFE_RELEASE(BlendState);
 	D3D_SAFE_RELEASE(SamplerState);
 	SpriteTexture.Release();

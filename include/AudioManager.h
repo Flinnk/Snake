@@ -16,10 +16,12 @@ class CAudioManager
 public:
 	CAudioManager() :XAudio2(nullptr), MasterVoice(nullptr) {}
 	bool Initialize();
-	bool LoadAudio(CLinearAllocator* const Allocator,const char* FilePath, CAudioClip* Clip, bool Loop);
+	bool LoadAudio(CLinearAllocator* const Allocator, const char* FilePath, CAudioClip* Clip, bool Loop);
 	void Release();
 	void StopEngine();
 	void StartEngine();
+
+	bool IsInitialized() { return bInitialized; }
 private:
 
 	HRESULT FindChunk(CFile& File, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition);
@@ -27,6 +29,7 @@ private:
 
 	IXAudio2* XAudio2;
 	IXAudio2MasteringVoice* MasterVoice;
+	bool bInitialized = false;
 };
 
 extern CAudioManager AudioManager;
